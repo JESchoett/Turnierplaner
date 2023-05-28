@@ -3,6 +3,7 @@ import os
 
 from team import Team
 from gruppe import Gruppe
+from runde import Runde
 
 teams = []
 def neuesTeam(teamName, teamGruppe):
@@ -54,9 +55,13 @@ gruppen = []
 def neueGruppe(name, spieleanzahl, teamsInGruppe):
     g = Gruppe(name, spieleanzahl, teamsInGruppe)
     return g
+ruden = []
+def neueRunde(nr, teamsDieSpielen):
+    r = Runde(nr, teamsDieSpielen)
+    return r
 
 
-if os.path.isfile(f"turniere/{turniername}/runde.csv"):
+if os.path.isfile(f"turniere/{turniername}/runden.csv"):
     print("es wurden schon runden gespielt")
 else:
     gruppenInCSV = data.gruppe.unique().tolist()
@@ -70,6 +75,31 @@ else:
             rundenWerdenGespielt = teamsInGruppe/2*(teamsInGruppe-1)
         elif rundenWerdenGespielt[0] == "d":
             rundenWerdenGespielt = teamsInGruppe*(teamsInGruppe-1)
-        print(f"es werden {rundenWerdenGespielt} runden in dieser Gruppe gespielt")
-        gruppen.append(neueGruppe(g,rundenWerdenGespielt,data[data.gruppe == g]))
-    print(gruppen)
+        print(f"es werden {int(rundenWerdenGespielt)} runden in dieser Gruppe gespielt")
+        gruppen.append(neueGruppe(g,int(rundenWerdenGespielt),data[data.gruppe == g]))
+
+for g in gruppen:
+    tInG = g.teamsInGruppe.teams.tolist()
+    if len(tInG) % 2 > 0:
+        tInG.append('-')
+    n = len(tInG)
+    teams.append(neuesTeam("-", g.name))
+
+    hinRundepaare = []
+    rueckRundepaare = []
+    for i in range(n):
+        for j in range(i+1, n):
+            hinRundepaare.append((tInG[i], tInG[j]))
+            rueckRundepaare.append((tInG[j], tInG[i]))
+    alleRunden = hinRundepaare + rueckRundepaare
+
+    #roundPairings = []
+    #playedTeams = []
+    #for runde in range(0,g.spieleanzahl):
+
+    #    for pairing in alleRunden:
+    #        team1, team2 = pairing
+    #        if team1 not in playedTeams and team2 not in playedTeams:
+    #            roundPairings.append(pairing)
+    #            playedTeams.append((team1, team2))
+    #    print(roundPairings)
