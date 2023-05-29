@@ -3,6 +3,7 @@ import os
 
 from team import Team
 from gruppe import Gruppe
+from spiele import Spiel
 from runde import Runde
 
 def welcome():
@@ -51,10 +52,6 @@ def turnierSetup():
         data.to_csv(f"turniere/{turniername}/gruppen.csv")
         return data
 
-
-rundenWerdenGespielt = 0
-rundenGespielt = 0
-
 gruppen = []
 def neueGruppe(name, spieleanzahl, teamsInGruppe):
     g = Gruppe(name, spieleanzahl, teamsInGruppe)
@@ -82,8 +79,17 @@ def gruppenAnlage(data):
                 if t.gruppe == g.name:
                     t.gruppeAendern(g)
 
+runden = []
+def neueRunde(nr, spiele):
+    r = Runde(nr, spiele)
+    return r
+def neuesSpiel(paar, t1, t2):
+    s = Spiel(paar, t1, t2)
+    return s
+
 def spielPlanErstellen():
     for g in gruppen:
+        print("-----")
         print(f"gruppe: {g.name}")
         tInG = g.teamsInGruppe.teams.tolist()
         if len(tInG) % 2 > 0:
@@ -100,31 +106,44 @@ def spielPlanErstellen():
                 rueckRundepaare.append((tInG[j], tInG[i]))
         alleRunden = hinRundepaare + rueckRundepaare
 
-        runden = {}
+        rundenAufsetzen = {}
         rundenCounter = 0
         while rundenCounter < g.spieleanzahl:
             rundenCounter += 1
-            roundPairings = []
+            rundenPaare = []
             playedTeams = []
-            for pairing in alleRunden:
-                team1, team2 = pairing
-
+            for paar in alleRunden:
+                team1, team2 = paar
                 schonGespielt = False
-                for key, value in runden.items():
-                    if pairing in value:
+                for key, value in rundenAufsetzen.items():
+                    if paar in value:
                         schonGespielt = True
 
                 if not schonGespielt and team1 not in playedTeams and team2 not in playedTeams:
-                    roundPairings.append(pairing)
+                    rundenPaare.append(paar)
                     playedTeams.append(team1)
                     playedTeams.append(team2)
 
-            runden[rundenCounter] = roundPairings
+            rundenAufsetzen[rundenCounter] = rundenPaare
 
-        print(runden)
+        for r in rundenAufsetzen:
+            spieleInRunde = []
+            for paar in rundenAufsetzen[r]:
+                t1, t2 = paar
+                for t in teams:
+                    if t1 == t.name:
+                        t1 = t
+                    if t2 == t.name:
+                        t2 = t
+                spieleInRunde.append(neuesSpiel(paar,t1,t2))
+
+            runden.append(neueRunde(r,spieleInRunde))
+
+        for r in runden:
+            print(f"Rundenr: {r.nr}")
+            for s in r.spiele:
+                print(f"es spielen: {s.paar}")
         print("-----")
-
-    #teams*runden = wie viele runden aus den Pairings wir nehmen wollen
 
 def main():
     welcome()

@@ -1,6 +1,4 @@
 class Runde():
-    def __init__(self, nr, teamsDieSpielen, ToreT1=0, ToreT2=0):
+    def __init__(self, nr, spiele):
         self.nr = nr
-        self.teamsDieSpielen = teamsDieSpielen
-        self.ToreT1 = ToreT1
-        self.ToreT2 = ToreT2
+        self.spiele = spiele

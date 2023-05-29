@@ -1,10 +1,10 @@
 class Team():
-    def __init__(self, name, gruppe, score = 0, pointsScored = 0, pointsTaken = 0):
+    def __init__(self, name, gruppe, punkte = 0, toreScored = 0, toreTaken = 0):
         self.name = name
         self.gruppe = gruppe
-        self.score = score
-        self.pointsScored = pointsScored
-        self.pointsTaken = pointsTaken
+        self.punkte = punkte
+        self.toreScored = toreScored
+        self.toreTaken = toreTaken
 
     def gruppeAendern(self, neueGruppe):
         self.gruppe = neueGruppe
