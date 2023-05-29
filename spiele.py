@@ -1,8 +1,9 @@
 class Spiel():
-    def __init__(self, paar, t1, t2):
+    def __init__(self, paar, t1, t2, nr):
         self.paar = paar
         self.t1 = t1
         self.t2 = t2
+        self.runde = nr
         self.gespielt = False
 
     def ergebnisEintragen(self, t1P, t2P):

@@ -17,9 +17,6 @@ def neuesTeam(teamName, teamGruppe):
     t = Team(name = teamName, gruppe=teamGruppe)
     return t
 
-turniername = " "
-dataGruppenCSV = " "
-
 def turnierSetup():
     turniername = input("Turniername angeben: ")
     if os.path.isdir(f"turniere/{turniername}"):
@@ -29,7 +26,7 @@ def turnierSetup():
         teamGruppe = dataGruppenCSV.gruppe.to_list()
         for i in range(0,len(teamNamen)):
             teams.append(neuesTeam(teamNamen[i], teamGruppe[i]))
-        return dataGruppenCSV
+        return dataGruppenCSV, turniername
     else:
         print("kein turnier gefunden... ein neues turnier wird angelegt")
         os.mkdir(f"turniere/{turniername}")
@@ -61,11 +58,23 @@ runden = []
 def neueRunde(nr, spiele):
     r = Runde(nr, spiele)
     return r
-def neuesSpiel(paar, t1, t2):
-    s = Spiel(paar, t1, t2)
+def neuesSpiel(paar, t1, t2, nr):
+    s = Spiel(paar, t1, t2, nr)
     return s
 
-def spielPlanErstellen():
+def rundenCsvErstellen(turniername):
+    rundenDict = {
+        "runde": [r for r in runden]
+    }
+    #for r in runden:
+    #    for s in r.spiele:
+    #        rundenDict[s] = s.paar, s.t1, s.t2, s.runde, s.gespielt
+#
+    dataRundenCSV = pandas.DataFrame(rundenDict)
+    dataRundenCSV.to_csv(f"turniere/{turniername}/runden.csv")
+    return dataRundenCSV
+
+def spielPlanErstellen(turniername):
     for g in gruppen:
         print(f"gruppe: {g.name}")
         teamsInGruppe = g.teamsInGruppe.teams.tolist()
@@ -104,7 +113,9 @@ def spielPlanErstellen():
 
             rundenAufsetzen[rundenCounter] = rundenPaare
 
+        rundenCounter = 0
         for r in rundenAufsetzen:
+            rundenCounter += 1
             spieleInRunde = []
             for paar in rundenAufsetzen[r]:
                 t1, t2 = paar
@@ -113,7 +124,7 @@ def spielPlanErstellen():
                         t1 = t
                     if t2 == t.name:
                         t2 = t
-                spieleInRunde.append(neuesSpiel(paar,t1,t2))
+                spieleInRunde.append(neuesSpiel(paar,t1,t2,rundenCounter))
 
             runden.append(neueRunde(r,spieleInRunde))
 
@@ -122,17 +133,9 @@ def spielPlanErstellen():
             for s in r.spiele:
                 print(f"es spielen: {s.paar}")
         print("-----")
+        rundenCsvErstellen(turniername)
 
-        #runden.csv muss jetzt erstellt werden
-        #teamsDict = {
-        #    "teams": [t.name for t in teams],
-        #    "gruppe": [t.gruppe for t in teams]
-        #}
-        #dataGruppenCSV = pandas.DataFrame(teamsDict)
-        #dataGruppenCSV.to_csv(f"turniere/{turniername}/gruppen.csv")
-        #return dataGruppenCSV
-
-def gruppenAnlage(dataGruppenCSV):
+def gruppenAnlage(dataGruppenCSV, turniername):
     gruppenInCSV = dataGruppenCSV.gruppe.unique().tolist()
     print(f"gruppen die mitspielen: {gruppenInCSV}")
 
@@ -148,8 +151,12 @@ def gruppenAnlage(dataGruppenCSV):
             rundenWerdenGespielt = input("wie viele Runden werden gespielt? (n/e/d): ")
             if rundenWerdenGespielt[0] == "e":
                 rundenWerdenGespielt = teamsInGruppe/2*(teamsInGruppe-1)
-            elif rundenWerdenGespielt[0] == "d":
-                rundenWerdenGespielt = teamsInGruppe*(teamsInGruppe-1)
+            else:
+                if rundenWerdenGespielt[0] == "d":
+                    rundenWerdenGespielt = teamsInGruppe*(teamsInGruppe-1)
+                elif rundenWerdenGespielt > teamsInGruppe*(teamsInGruppe-1):
+                    rundenWerdenGespielt = teamsInGruppe*(teamsInGruppe-1)
+
             print(f"es werden {int(rundenWerdenGespielt)} runden in dieser Gruppe gespielt")
             gruppen.append(neueGruppe(g,int(rundenWerdenGespielt),dataGruppenCSV[dataGruppenCSV.gruppe == g]))
 
@@ -157,14 +164,12 @@ def gruppenAnlage(dataGruppenCSV):
             for g in gruppen:
                 if t.gruppe == g.name:
                     t.gruppeAendern(g)
-        spielPlanErstellen()
-
-
+        spielPlanErstellen(turniername)
 
 def main():
     welcome()
-    dataGruppenCSV = turnierSetup()
-    gruppenAnlage(dataGruppenCSV)
+    dataGruppenCSV, turniername = turnierSetup()
+    gruppenAnlage(dataGruppenCSV, turniername)
 
 if __name__ == "__main__":
     main()
