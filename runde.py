@@ -4,5 +4,3 @@ class Runde():
         self.teamsDieSpielen = teamsDieSpielen
         self.ToreT1 = ToreT1
         self.ToreT2 = ToreT2
-
-#class Spiel()
