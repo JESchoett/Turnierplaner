@@ -3,6 +3,7 @@ class Spiel():
         self.paar = paar
         self.t1 = t1
         self.t2 = t2
+        self.gespielt = False
 
     def ergebnisEintragen(self, t1P, t2P):
         if self.t1.name != "-" and self.t2.name != "-":
@@ -18,3 +19,5 @@ class Spiel():
             self.t1.pointsTaken  += t2P
             self.t2.pointsScored += t2P
             self.t2.pointsTaken  += t1P
+
+        self.gespielt = True

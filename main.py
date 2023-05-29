@@ -1,5 +1,6 @@
 import pandas
 import os
+import random
 
 from team import Team
 from gruppe import Gruppe
@@ -17,18 +18,18 @@ def neuesTeam(teamName, teamGruppe):
     return t
 
 turniername = " "
-data = " "
+dataGruppenCSV = " "
 
 def turnierSetup():
     turniername = input("Turniername angeben: ")
     if os.path.isdir(f"turniere/{turniername}"):
-        data = pandas.read_csv(f"turniere/{turniername}/gruppen.csv")
+        dataGruppenCSV = pandas.read_csv(f"turniere/{turniername}/gruppen.csv")
         print("turnier wurde gefunden")
-        teamNamen = data.teams.to_list()
-        teamGruppe = data.gruppe.to_list()
+        teamNamen = dataGruppenCSV.teams.to_list()
+        teamGruppe = dataGruppenCSV.gruppe.to_list()
         for i in range(0,len(teamNamen)):
             teams.append(neuesTeam(teamNamen[i], teamGruppe[i]))
-        return data
+        return dataGruppenCSV
     else:
         print("kein turnier gefunden... ein neues turnier wird angelegt")
         os.mkdir(f"turniere/{turniername}")
@@ -48,37 +49,14 @@ def turnierSetup():
             "teams": [t.name for t in teams],
             "gruppe": [t.gruppe for t in teams]
         }
-        data = pandas.DataFrame(teamsDict)
-        data.to_csv(f"turniere/{turniername}/gruppen.csv")
-        return data
+        dataGruppenCSV = pandas.DataFrame(teamsDict)
+        dataGruppenCSV.to_csv(f"turniere/{turniername}/gruppen.csv")
+        return dataGruppenCSV
 
 gruppen = []
 def neueGruppe(name, spieleanzahl, teamsInGruppe):
     g = Gruppe(name, spieleanzahl, teamsInGruppe)
     return g
-
-def gruppenAnlage(data):
-    if os.path.isfile(f"turniere/{turniername}/runden.csv"):
-        print("es wurden schon runden gespielt")
-    else:
-        gruppenInCSV = data.gruppe.unique().tolist()
-        print(f"gruppen die mitspielen: {gruppenInCSV}")
-        for g in gruppenInCSV:
-            teamsInGruppe = len(data[data.gruppe == g])
-
-            rundenWerdenGespielt = input("wie viele Runden werden gespielt? (n/e/d): ")
-            if rundenWerdenGespielt[0] == "e":
-                rundenWerdenGespielt = teamsInGruppe/2*(teamsInGruppe-1)
-            elif rundenWerdenGespielt[0] == "d":
-                rundenWerdenGespielt = teamsInGruppe*(teamsInGruppe-1)
-            print(f"es werden {int(rundenWerdenGespielt)} runden in dieser Gruppe gespielt")
-            gruppen.append(neueGruppe(g,int(rundenWerdenGespielt),data[data.gruppe == g]))
-
-        for t in teams:
-            for g in gruppen:
-                if t.gruppe == g.name:
-                    t.gruppeAendern(g)
-
 runden = []
 def neueRunde(nr, spiele):
     r = Runde(nr, spiele)
@@ -89,21 +67,21 @@ def neuesSpiel(paar, t1, t2):
 
 def spielPlanErstellen():
     for g in gruppen:
-        print("-----")
         print(f"gruppe: {g.name}")
-        tInG = g.teamsInGruppe.teams.tolist()
-        if len(tInG) % 2 > 0:
-            tInG.append('-')
+        teamsInGruppe = g.teamsInGruppe.teams.tolist()
+        if len(teamsInGruppe) % 2 > 0:
+            teamsInGruppe.append('-')
             teams.append(neuesTeam("-", g))
             g.teamsAendern(team for team in teams if team.gruppe == g)
-        n = len(tInG)
+
+        random.shuffle(teamsInGruppe)
 
         hinRundepaare = []
         rueckRundepaare = []
-        for i in range(n):
-            for j in range(i+1, n):
-                hinRundepaare.append((tInG[i], tInG[j]))
-                rueckRundepaare.append((tInG[j], tInG[i]))
+        for i in range(len(teamsInGruppe)):
+            for j in range(i+1, len(teamsInGruppe)):
+                hinRundepaare.append((teamsInGruppe[i], teamsInGruppe[j]))
+                rueckRundepaare.append((teamsInGruppe[j], teamsInGruppe[i]))
         alleRunden = hinRundepaare + rueckRundepaare
 
         rundenAufsetzen = {}
@@ -145,11 +123,48 @@ def spielPlanErstellen():
                 print(f"es spielen: {s.paar}")
         print("-----")
 
+        #runden.csv muss jetzt erstellt werden
+        #teamsDict = {
+        #    "teams": [t.name for t in teams],
+        #    "gruppe": [t.gruppe for t in teams]
+        #}
+        #dataGruppenCSV = pandas.DataFrame(teamsDict)
+        #dataGruppenCSV.to_csv(f"turniere/{turniername}/gruppen.csv")
+        #return dataGruppenCSV
+
+def gruppenAnlage(dataGruppenCSV):
+    gruppenInCSV = dataGruppenCSV.gruppe.unique().tolist()
+    print(f"gruppen die mitspielen: {gruppenInCSV}")
+
+    if os.path.isfile(f"turniere/{turniername}/runden.csv"):
+        dataRundenCSV = pandas.read_csv(f"turniere/{turniername}/runden.csv")
+        print("es wurden schon runden gespielt")
+        #for g in gruppenInCSV:
+        #gruppen.append(neueGruppe(g,int(max Rundenanzahl),dataGruppenCSV[dataGruppenCSV.gruppe == g]))
+    else:
+        for g in gruppenInCSV:
+            teamsInGruppe = len(dataGruppenCSV[dataGruppenCSV.gruppe == g])
+
+            rundenWerdenGespielt = input("wie viele Runden werden gespielt? (n/e/d): ")
+            if rundenWerdenGespielt[0] == "e":
+                rundenWerdenGespielt = teamsInGruppe/2*(teamsInGruppe-1)
+            elif rundenWerdenGespielt[0] == "d":
+                rundenWerdenGespielt = teamsInGruppe*(teamsInGruppe-1)
+            print(f"es werden {int(rundenWerdenGespielt)} runden in dieser Gruppe gespielt")
+            gruppen.append(neueGruppe(g,int(rundenWerdenGespielt),dataGruppenCSV[dataGruppenCSV.gruppe == g]))
+
+        for t in teams:
+            for g in gruppen:
+                if t.gruppe == g.name:
+                    t.gruppeAendern(g)
+        spielPlanErstellen()
+
+
+
 def main():
     welcome()
-    data = turnierSetup()
-    gruppenAnlage(data)
-    spielPlanErstellen()
+    dataGruppenCSV = turnierSetup()
+    gruppenAnlage(dataGruppenCSV)
 
 if __name__ == "__main__":
     main()
