@@ -23,7 +23,7 @@ def neueRunde(nr, spiele):
     r = Runde(nr, spiele)
     return r
 def neuesSpiel(paar, t1, t2, nr):
-    s = Spiel(paar, t1, t2, nr)
+    s = Spiel(paar, t1, t2, nr,gespielt=False)
     return s
 
 def turnierSetup():
@@ -132,7 +132,6 @@ def gruppenAnlage(dataGruppenCSV, turniername, teams):
 
 def spielPlanErstellen(turniername, teams, gruppen):
     for g in gruppen:
-        rundenAktuelleGruppe = []
         print(f"gruppe: {g.name}")
         teamsInGruppe = []
         for t in g.teamsInGruppe:
@@ -156,6 +155,7 @@ def spielPlanErstellen(turniername, teams, gruppen):
 
         rundenAufsetzen = {}
         rundenCounter = 0
+        rundenAktuelleGruppe = []
         while rundenCounter < g.spieleanzahl:
             rundenCounter += 1
             rundenPaare = []
@@ -196,33 +196,57 @@ def spielPlanErstellen(turniername, teams, gruppen):
             for s in r.spiele:
                 print(f"es spielen: {s.paar}")
         print("-----")
+        rundenCsvErstellen(turniername)
     return runden
 
-def rundenDatenAusCSV(turniername, runden):
-    if os.path.isfile(f"turniere/{turniername}/runden.csv"):
-        schonGespielt = False
-        dataRundenCSV = pandas.read_csv(f"turniere/{turniername}/runden.csv")
-        dataRunden = dataRundenCSV.to_dict()
+def rundenDatenAusCSV(turniername, gruppen):
+    schonGespielt = False
+    dataRundenCSV = pandas.read_csv(f"turniere/{turniername}/runden.csv")
+    dataRunden = dataRundenCSV.to_dict()
 
-        for r in runden:
-            for s in r.spiele:
-                for key, value in dataRunden.items():
-                    paarDesSpieles   = key
-                    gruppeDesSpieles = value [0]
-                    runde            = value [1]
-                    gespielt         = value [2]
-                    ergebnis         = value [3]
+    for g in gruppen:
+        rundenAktuelleGruppe = []
+        spieleInRunde = []
+        aktuelleRunde = 1
+        for key, value in dataRunden.items():
+            paarDesSpieles   = key
+            gruppeDesSpieles = value [0]
+            rundeAusCSV      = value [1]
+            gespielt         = value [2]
+            ergebnisStr      = value [3]
 
-                    ergebnis = int(ergebnis)
+            paarDesSpielesSplit = paarDesSpieles.split("/")
+            rundeAusCSV = int(rundeAusCSV)
+            ergebnisStr = ergebnisStr.replace("[","")
+            ergebnisStr = ergebnisStr.replace("]","")
+            ergebnisStr = ergebnisStr.replace(",","")
+            ergebnis = [int(i) for i in ergebnisStr if i != " "]
 
-                    if s.paar == paarDesSpieles and gespielt:
+            t1 = ""
+            t2 = ""
+            if g.name == gruppeDesSpieles:
+                for t in g.teamsInGruppe:
+                    if t.name == paarDesSpielesSplit[0]:
+                        t1 = t
+                    elif t.name == paarDesSpielesSplit[1]:
+                        t2 = t
+
+                if rundeAusCSV == aktuelleRunde:
+                    spieleInRunde.append(neuesSpiel(paarDesSpieles,t1,t2,int(rundeAusCSV),gespielt))
+                    if gespielt:
                         schonGespielt = True
-                        s.gespielt = True
-                        s.ergebnis = ergebnis
-                        s.ergebnisEintragen(ergebnis[0],ergebnis[1])
+                        spieleInRunde[-1] = spieleInRunde[-1].ergebnisAusCSV()
+                else:
+                    rundenAktuelleGruppe.append(neueRunde(rundeAusCSV,spieleInRunde))
+                    aktuelleRunde = rundeAusCSV
 
-        if schonGespielt:
-            print("es wurden schon runden gespielt")
+
+
+        runden.append(rundenAktuelleGruppe)
+
+    if schonGespielt:
+        print("es wurden schon runden gespielt")
+    return runden
 
 
 teams = []
@@ -236,10 +260,9 @@ def main():
     if not os.path.isfile(f"turniere/{turniername}/runden.csv"):
         runden = spielPlanErstellen(turniername, teams, gruppen)
     else:
-        runden = rundenDatenAusCSV(turniername)
-    #for g in gruppen:
-    #    for t in g.teamsInGruppe:
-    #        print(f"team: {t.name} punkte: {t.punkte}")
+        runden = rundenDatenAusCSV(turniername, gruppen)
+    for r in runden:
+        print(r)
 
 if __name__ == "__main__":
     main()
