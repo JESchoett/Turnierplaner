@@ -5,9 +5,14 @@ class Spiel():
         self.t2 = t2
         self.runde = nr
         self.gespielt = False
+        self.ergebnis =[0,0]
 
     def ergebnisEintragen(self, t1P, t2P):
         if self.t1.name != "-" and self.t2.name != "-":
+
+            self.ergebnis[0] = t1P
+            self.ergebnis[1] = t2P
+
             if t1P > t2P:
                 self.t1.punkte += 3
             if t1P < t2P:
