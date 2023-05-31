@@ -1,4 +1,10 @@
+"""
+Deklaration der Klasse Runde
+"""
 class Runde():
-    def __init__(self, nr, spiele):
-        self.nr = nr
+    """
+    Klasse die alle Spiele einer Runde speichert
+    """
+    def __init__(self, rundenzahl, spiele):
+        self.rundenzahl = rundenzahl
         self.spiele = spiele

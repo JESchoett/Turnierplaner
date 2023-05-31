@@ -1,10 +1,20 @@
+"""
+Deklaration der Klasse Team
+"""
+
 class Team():
-    def __init__(self, name, gruppe, punkte = 0, toreScored = 0, toreTaken = 0):
+    """
+    Klasse die die Daten eines Teams speichert
+    """
+    def __init__(self, name, gruppe, punkte = 0, treffer = 0, gegentreffer = 0):
         self.name = name
         self.gruppe = gruppe
         self.punkte = punkte
-        self.toreScored = toreScored
-        self.toreTaken = toreTaken
+        self.treffer = treffer
+        self.gegentreffer = gegentreffer
 
-    def gruppeAendern(self, neueGruppe):
-        self.gruppe = neueGruppe
+    def gruppe_aendern(self, neue_gruppe):
+        """
+        Nachträgliche Anpassung der Gruppe
+        """
+        self.gruppe = neue_gruppe
