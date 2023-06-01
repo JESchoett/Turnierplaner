@@ -262,8 +262,14 @@ def runden_daten_aus_csv(turniername, gruppen_lokal):
             gespielt           = value [2]
             ergebnis_str       = value [3]
 
+            #formatierung der Daten des CSV, aktuell sind alle Strings
             paar_des_spieles_split = paar_des_spieles.split("/")
+            gruppe_des_spieles = int(gruppe_des_spieles)
             runde_aus_csv = int(runde_aus_csv)
+            if gespielt == 'True':
+                gespielt = True
+            else:
+                gespielt = False
             ergebnis_str = ergebnis_str.replace("[","")
             ergebnis_str = ergebnis_str.replace("]","")
             ergebnis_str = ergebnis_str.replace(",","")
@@ -310,6 +316,17 @@ def main():
         runden = spielplan_erstellen(turniername, teams, gruppen)
     else:
         runden = runden_daten_aus_csv(turniername, gruppen)
+
+    #test, der aufgebauten Daten
+    for runden_jeder_gruppe in runden:
+        print(runden_jeder_gruppe.rundenzahl)
+        for spiele_der_runde in runden_jeder_gruppe.spiele:
+            print(spiele_der_runde.paar)
+
+    for gruppe_aus_gruppen in gruppen:
+        print(gruppe_aus_gruppen.name)
+        for team_aus_teams in gruppe_aus_gruppen.teams_in_gruppe:
+            print(f"{team_aus_teams.name} hat {team_aus_teams.punkte} punkte")
 
 if __name__ == "__main__":
     main()
