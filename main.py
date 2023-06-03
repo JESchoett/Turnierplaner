@@ -1,7 +1,6 @@
 """
 Ablaufsteuerung des Turnierplans
 """
-
 import os
 import random
 import pandas
@@ -35,42 +34,48 @@ def neue_gruppe(name, spieleanzahl, teams_in_gruppe):
     erstellte_gruppe = Gruppe(name, spieleanzahl, teams_in_gruppe)
     return erstellte_gruppe
 
-def neue_runde(rundenzahl, spiele):
+def neue_runde(rundenzahl, spiele, runde_gespielt, gruppe_der_runde):
     """
     anlage eines Runde Objektes
     """
-    erstellte_runde = Runde(rundenzahl, spiele)
+    erstellte_runde = Runde(rundenzahl, spiele, runde_gespielt, gruppe_der_runde)
     return erstellte_runde
 
-def neues_spiel(paar, team_1, team_2, runde, gespielt):
+def neues_spiel(paar, team_1, team_2, runde, gespielt, ergebnis):
     """
     anlage eines Spiel Objektes
     """
-    erstelltes_spiel = Spiel(paar, team_1, team_2, runde,gespielt)
+    erstelltes_spiel = Spiel(paar, team_1, team_2, runde,gespielt, ergebnis)
     return erstelltes_spiel
 
 def turnier_setup():
     """
     erstellt die Objekte für jedes Team
-    wenn es eine gruppen.csv gibt werden hieraus die Daten der Gruppen Erstellt
+    wenn es eine gruppen.json gibt werden hieraus die Daten der Gruppen Erstellt
     """
     turniername = input("Turniername angeben: ")
     lokal_teams = []
-    if os.path.isdir(f"turniere/{turniername}"):
-        data_gruppen_csv = pandas.read_csv(f"turniere/{turniername}/gruppen.csv")
+    if os.path.isfile(f"turniere/{turniername}/gruppen.json"):
+        data_gruppen_json = pandas.read_json(f"turniere/{turniername}/gruppen.json")
         print("turnier wurde gefunden")
-        name_des_teamsn = data_gruppen_csv.teams.to_list()
-        gruppe_des_teams = data_gruppen_csv.gruppe.to_list()
-        for i in range(0,len(name_des_teamsn)):
-            lokal_teams.append(neues_team(name_des_teamsn[i], gruppe_des_teams[i]))
-        return data_gruppen_csv, turniername, lokal_teams
+        for column in data_gruppen_json:
+            for _, team_data in data_gruppen_json[column].items():
+                team = Team(
+                    name         = team_data["name"],
+                    gruppe       = team_data["gruppe"],
+                    punkte       = team_data.get("punkte", 0),
+                    treffer      = team_data.get("treffer", 0),
+                    gegentreffer = team_data.get("gegentreffer", 0)
+                )
+                lokal_teams.append(team)
+        return turniername, lokal_teams
     else:
         print("kein turnier gefunden... ein neues turnier wird angelegt")
         os.mkdir(f"turniere/{turniername}")
         weitere_teams_anlegen = True
         while weitere_teams_anlegen:
-            weitere_anlage = input("möchtest du ein neues Team Anlegen? (J/N): ")
-            if  weitere_anlage == "N" or weitere_anlage == "n":
+            weitere_anlage = input("möchtest du ein neues Team Anlegen? (J/N): ").lower()
+            if  weitere_anlage == "n":
                 weitere_teams_anlegen = False
             else:
                 name_des_teams = input("Team Name angeben: ")
@@ -78,98 +83,72 @@ def turnier_setup():
                 if len(gruppe_des_teams) == 0:
                     gruppe_des_teams = 0
                 lokal_teams.append(neues_team(name_des_teams, gruppe_des_teams))
+        dataframe = pandas.DataFrame(data=lokal_teams)
+        dataframe.to_json(f"turniere/{turniername}/gruppen.json")
+        return turniername, lokal_teams
 
-        teams_dict = {
-            "teams": [t.name for t in lokal_teams],
-            "gruppe": [t.gruppe for t in lokal_teams]
-        }
-        data_gruppen_csv = pandas.DataFrame(teams_dict)
-        data_gruppen_csv.to_csv(f"turniere/{turniername}/gruppen.csv", index = False)
-        return data_gruppen_csv, turniername, lokal_teams
-
-def runden_csv_erstellen(turniername, runden_lokal):
+def runden_json_erstellen(turniername, runden_lokal):
     """
-    erstellung des runden.csv aus den Spielen aller Runden
+    erstellung des runden.json aus den Spielen aller Runden
     """
-    runden_dict = {}
-    for runden_jeder_gruppe in runden_lokal:
-        for runde_der_gruppe in runden_jeder_gruppe:
-            for spiele_der_runde in runde_der_gruppe.spiele:
-                runden_dict[spiele_der_runde.paar] = spiele_der_runde.team_1.gruppe.name, spiele_der_runde.runde, spiele_der_runde.gespielt, spiele_der_runde.ergebnis
+    for runden_der_gruppen in runden_lokal:
+        for runden_aus_runden in runden_der_gruppen:
+            for spiel_aus_spielen in runden_aus_runden.spiele:
+                spiel_aus_spielen.team_1 = spiel_aus_spielen.team_1.name
+                spiel_aus_spielen.team_2 = spiel_aus_spielen.team_2.name
 
-    data_runden_csv = pandas.DataFrame(runden_dict)
-    data_runden_csv.to_csv(f"turniere/{turniername}/runden.csv", index = False)
-    return data_runden_csv
+    dataframe = pandas.DataFrame(data=runden_lokal)
+    dataframe.to_json(f"turniere/{turniername}/runden.json")
 
-def gruppen_anlage(data_gruppen_csv, turniername, teams_lokal):
+def gruppen_anlage(turniername, teams_lokal):
     """
     erstellt die Objekte für jede Gruppe
-    wenn die runden.csv die Runden aus und erstellt die Objekte für jede Runde und Spiele jeder Gruppe
     """
     gruppen_lokal = []
-    gruppen_in_csv = data_gruppen_csv.gruppe.unique().tolist()
-    print(f"gruppen die mitspielen: {gruppen_in_csv}")
+    gruppen_in_turnier = {}
 
-    if os.path.isfile(f"turniere/{turniername}/runden.csv"):
-        data_runden_csv = pandas.read_csv(f"turniere/{turniername}/runden.csv")
-        print("es liegt ein Rundenplan vor")
-        data_runden = data_runden_csv.to_dict()
+    for team_aus_teams in teams_lokal:
+        if team_aus_teams.gruppe not in gruppen_in_turnier.keys():
+            gruppen_in_turnier[team_aus_teams.gruppe] = 1
+        else:
+            gruppen_in_turnier[team_aus_teams.gruppe] += 1
 
-        for gruppe_aus_gruppen in gruppen_in_csv:
-            runden_werden_gespielt = 0
-            for key, value in data_runden.items():
-                paar_des_spieles   = key
-                gruppe_des_spieles = value [0]
-                runde              = value [1]
-                gespielt           = value [2]
-                ergebnis           = value [3]
+    print(f"gruppen die mitspielen: {gruppen_in_turnier}")
 
-                if int(runde) > runden_werden_gespielt and gruppe_des_spieles == gruppe_aus_gruppen:
-                    runden_werden_gespielt = int(runde)
+    for gruppe_aus_json,anzahl_der_teams in gruppen_in_turnier.items():
+        if anzahl_der_teams % 2 > 0:
+            filler_team = "-"+gruppe_aus_json
+            teams_lokal.append(neues_team(filler_team, gruppe_aus_json))
+            gruppen_in_turnier[gruppe_aus_json] += 1
 
-            teams_in_gruppe = []
-            for teams_aus_csv in data_gruppen_csv[data_gruppen_csv.gruppe == gruppe_aus_gruppen].teams.tolist():
-                for team_aus_teams in teams_lokal:
-                    if teams_aus_csv == team_aus_teams.name:
-                        teams_in_gruppe.append(team_aus_teams)
-                        break
-            gruppen_lokal.append(neue_gruppe(gruppe_aus_gruppen,int(runden_werden_gespielt),teams_in_gruppe))
-        return gruppen_lokal
+        runden_werden_gespielt = 0
 
-    else:
-        for gruppe_aus_csv in gruppen_in_csv:
-            anzahl_der_teams = len(data_gruppen_csv[data_gruppen_csv.gruppe == gruppe_aus_csv])
-
-            runden_werden_gespielt = input("wie viele Runden werden gespielt? (n/e/d): ")
-            if runden_werden_gespielt[0] == "e":
-                runden_werden_gespielt = anzahl_der_teams/2*(anzahl_der_teams-1)
+        if not os.path.isfile(f"turniere/{turniername}/runden.json"):
+            runden_anfrage_modus = input("wie viele Runden werden gespielt? (h = Hinrunde/r = Rückrunde): ").lower()
+            if runden_anfrage_modus[0] == "r":
+                runden_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
             else:
-                if runden_werden_gespielt[0] == "d":
-                    runden_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
-                elif runden_werden_gespielt > anzahl_der_teams*(anzahl_der_teams-1):
-                    runden_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
+                runden_werden_gespielt = anzahl_der_teams/2*(anzahl_der_teams-1)
 
-            print(f"es werden {int(runden_werden_gespielt)} runden in dieser Gruppe gespielt")
+            print(f"es werden {runden_werden_gespielt} runden in dieser Gruppe gespielt")
 
-            teams_in_gruppe = []
-            for teams_aus_csv in data_gruppen_csv[data_gruppen_csv.gruppe == gruppe_aus_csv].teams.tolist():
-                for team_aus_teams in teams_lokal:
-                    if teams_aus_csv == team_aus_teams.name:
-                        teams_in_gruppe.append(team_aus_teams)
-                        break
+        teams_in_gruppe = []
+        for team_aus_teams in teams_lokal:
+            if gruppe_aus_json == team_aus_teams.gruppe:
+                teams_in_gruppe.append(team_aus_teams)
 
-            gruppen_lokal.append(neue_gruppe(gruppe_aus_csv,int(runden_werden_gespielt),teams_in_gruppe))
+        gruppen_lokal.append(neue_gruppe(gruppe_aus_json,runden_werden_gespielt,teams_in_gruppe))
 
     for team_aus_teams in teams_lokal:
         for gruppe_aus_gruppen in gruppen_lokal:
             if team_aus_teams.gruppe == gruppe_aus_gruppen.name:
                 team_aus_teams.gruppe_aendern(gruppe_aus_gruppen)
-    return gruppen_lokal
+    return gruppen_lokal, teams_lokal
 
-def spielplan_erstellen(turniername, teams_lokal, gruppen_lokal):
+def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
     """
     erstellt die Objekte für jede Runde und Spiele jeder Gruppe
-    außerdem wird die erstmalige erstellung der runden.csv aufgerufen
+    außerdem wird die erstmalige erstellung der runden.json aufgerufen
     """
     runden_lokal = []
     for gruppe_aus_gruppen in gruppen_lokal:
@@ -178,20 +157,14 @@ def spielplan_erstellen(turniername, teams_lokal, gruppen_lokal):
         for teams_aus_gruppe in gruppe_aus_gruppen.teams_in_gruppe:
             teams_in_gruppe.append(teams_aus_gruppe.name)
 
-        if len(teams_in_gruppe) % 2 > 0:
-            filler_team = "-"+str(gruppe_aus_gruppen.name)
-            teams_in_gruppe.append(filler_team)
-            teams_lokal.append(neues_team(filler_team, gruppe_aus_gruppen))
-            gruppe_aus_gruppen.teams_aendern(team for team in teams_lokal if team.gruppe == gruppe_aus_gruppen.name)
-
         random.shuffle(teams_in_gruppe)
 
         paare_der_hinrunde = []
         paare_der_rueckrunde = []
-        for i in range(len(teams_in_gruppe)):
-            for j in range(i+1, len(teams_in_gruppe)):
-                paare_der_hinrunde.append((teams_in_gruppe[i], teams_in_gruppe[j]))
-                paare_der_rueckrunde.append((teams_in_gruppe[j], teams_in_gruppe[i]))
+        for index_i,team_i in enumerate(teams_in_gruppe):
+            for index_j,team_j in enumerate(teams_in_gruppe[index_i+1:], start=index_i+1):
+                paare_der_hinrunde.append((team_i, team_j))
+                paare_der_rueckrunde.append((team_j, team_i))
         alle_runden = paare_der_hinrunde + paare_der_rueckrunde
 
         runden_aufsetzen = {}
@@ -204,7 +177,7 @@ def spielplan_erstellen(turniername, teams_lokal, gruppen_lokal):
             for paar in alle_runden:
                 team1, team2 = paar
                 schon_gespielt = False
-                for key, value in runden_aufsetzen.items():
+                for _, value in runden_aufsetzen.items():
                     if paar in value:
                         schon_gespielt = True
 
@@ -216,10 +189,10 @@ def spielplan_erstellen(turniername, teams_lokal, gruppen_lokal):
             runden_aufsetzen[runden_counter] = paare_der_runden
 
         runden_counter = 0
-        for runde_aus_aufsetzen_dict in runden_aufsetzen:
+        for runde_aus_aufsetzen, spiele_der_runde in runden_aufsetzen.items():
             runden_counter += 1
-            spiele_in_runde = []
-            for paar in runden_aufsetzen[runde_aus_aufsetzen_dict]:
+            spiele_lokal = []
+            for paar in spiele_der_runde:
                 team_1, team_2 = paar
                 for team_aus_teams in teams_lokal:
                     if team_1 == team_aus_teams.name:
@@ -227,9 +200,9 @@ def spielplan_erstellen(turniername, teams_lokal, gruppen_lokal):
                     if team_2 == team_aus_teams.name:
                         team_2 = team_aus_teams
                 paar = f"{team_1.name}/{team_2.name}"
-                spiele_in_runde.append(neues_spiel(paar,team_1,team_2,runden_counter, False))
+                spiele_lokal.append(neues_spiel(paar,team_1,team_2,runden_counter, False, [0,0]))
 
-            runden_aktuelle_gruppe.append(neue_runde(runde_aus_aufsetzen_dict,spiele_in_runde))
+            runden_aktuelle_gruppe.append(neue_runde(runde_aus_aufsetzen,spiele_lokal, False, gruppe_aus_gruppen.name))
 
         runden_lokal.append(runden_aktuelle_gruppe)
 
@@ -238,66 +211,72 @@ def spielplan_erstellen(turniername, teams_lokal, gruppen_lokal):
             for spiele_der_runde in runde_der_gruppe.spiele:
                 print(f"es spielen: {spiele_der_runde.paar}")
         print("-----")
-        runden_csv_erstellen(turniername, runden_lokal)
+    runden_json_erstellen(turniername, runden_lokal)
     return runden_lokal
 
-def runden_daten_aus_csv(turniername, gruppen_lokal):
+def runden_daten_aus_json(turniername, teams_lokal, gruppen_lokal):
     """
-    liest aus der runden.csv die Runden aus und erstellt die Objekte für jede Runde und Spiele jeder Gruppe
+    liest aus der runden.json die Runden und Gruppen aus und erstellt die Objekte für jede Runde und Spiel
     """
-    schon_gespielt = False
+    print("es liegt ein Rundenplan vor")
     runden_lokal = []
 
-    data_runden_csv = pandas.read_csv(f"turniere/{turniername}/runden.csv")
-    data_runden = data_runden_csv.to_dict()
+    data_runden_json = pandas.read_json(f"turniere/{turniername}/runden.json")
 
+    #jede Gruppe hat in der runden liste eine liste mit den runden objekte der Gruppe
     for gruppe_aus_gruppen in gruppen_lokal:
-        runden_aktuelle_gruppe = []
-        spiele_in_runde = []
-        aktuelle_runde = 1
-        for key, value in data_runden.items():
-            paar_des_spieles   = key
-            gruppe_des_spieles = value [0]
-            runde_aus_csv      = value [1]
-            gespielt           = value [2]
-            ergebnis_str       = value [3]
+        runden_der_gruppe = []
+        for column in data_runden_json:
+            for _, runden_daten in data_runden_json[column].items():
+                if runden_daten is not None:
+                    if gruppe_aus_gruppen.name == runden_daten["gruppe_der_runde"]:
+                        runde = Runde(
+                            rundenzahl       = runden_daten["rundenzahl"],
+                            spiele           = runden_daten["spiele"],
+                            runde_gespielt   = runden_daten["runde_gespielt"],
+                            gruppe_der_runde = runden_daten["gruppe_der_runde"]
+                        )
+                        runden_der_gruppe.append(runde)
+        runden_lokal.append(runden_der_gruppe)
 
-            #formatierung der Daten des CSV, aktuell sind alle Strings
-            paar_des_spieles_split = paar_des_spieles.split("/")
-            gruppe_des_spieles = int(gruppe_des_spieles)
-            runde_aus_csv = int(runde_aus_csv)
-            if gespielt == 'True':
-                gespielt = True
-            else:
-                gespielt = False
-            ergebnis_str = ergebnis_str.replace("[","")
-            ergebnis_str = ergebnis_str.replace("]","")
-            ergebnis_str = ergebnis_str.replace(",","")
-            ergebnis = [int(i) for i in ergebnis_str if i != " "]
+    for runden_der_gruppe in runden_lokal:
+        for runde_aus_runden in runden_der_gruppe:
+            spiele_der_runde = []
+            for spiel_daten in runde_aus_runden.spiele:
+                spiel = Spiel(
+                    paar     = spiel_daten["paar"],
+                    team_1   = spiel_daten["team_1"],
+                    team_2   = spiel_daten["team_2"],
+                    runde    = spiel_daten["runde"],
+                    gespielt = spiel_daten["gespielt"],
+                    ergebnis = spiel_daten["ergebnis"]
+                )
+                spiele_der_runde.append(spiel)
+            runde_aus_runden.spiele = spiele_der_runde
 
-            team_1 = ""
-            team_2 = ""
-            if gruppe_aus_gruppen.name == gruppe_des_spieles:
-                for team_aus_gruppe in gruppe_aus_gruppen.teams_in_gruppe:
-                    if team_aus_gruppe.name == paar_des_spieles_split[0]:
-                        team_1 = team_aus_gruppe
-                    elif team_aus_gruppe.name == paar_des_spieles_split[1]:
-                        team_2 = team_aus_gruppe
+    teams_angepasst = []
+    for runden_der_gruppe in runden_lokal:
+        for runde_aus_runden in runden_der_gruppe:
+            for spiel_aus_spielen in runde_aus_runden.spiele:
+            #Zuordnung der Teamobjekte zu den jeweiligen Spielen
+                for team_aus_teams in teams_lokal:
+                    if team_aus_teams.name not in teams_angepasst:
+                        if spiel_aus_spielen.team_1 == team_aus_teams.name:
+                            spiel_aus_spielen.team_1 = team_aus_teams
+                            teams_angepasst.append(team_aus_teams.name)
+                        if spiel_aus_spielen.team_2 == team_aus_teams.name:
+                            spiel_aus_spielen.team_2 = team_aus_teams
+                            teams_angepasst.append(team_aus_teams.name)
 
-                if runde_aus_csv == aktuelle_runde:
-                    generiere_spiel = neues_spiel(paar_des_spieles,team_1,team_2,int(runde_aus_csv),gespielt)
-                    spiele_in_runde.append(generiere_spiel)
-                    if gespielt:
-                        schon_gespielt = True
-                        spiele_in_runde[-1] = spiele_in_runde[-1].ergebnis_aus_csv()
-                else:
-                    runden_aktuelle_gruppe.append(neue_runde(runde_aus_csv,spiele_in_runde))
-                    aktuelle_runde = runde_aus_csv
+            #punkte müssen vergeben werden
+    for runden_der_gruppe in runden_lokal:
+        for runde_aus_runden in runden_der_gruppe:
+            if not runde_aus_runden.runde_gespielt:
+                break
+            for spiel_aus_spielen in runde_aus_runden.spiele:
+                if spiel_aus_spielen.gespielt:
+                    spiel_aus_spielen.ergebnis_eintragen(spiel_aus_spielen.ergebnis[0], spiel_aus_spielen.ergebnis[1])
 
-        runden_lokal.append(runden_aktuelle_gruppe)
-
-    if schon_gespielt:
-        print("es wurden schon runden gespielt")
     return runden_lokal
 
 def main():
@@ -309,19 +288,20 @@ def main():
     runden = []
 
     welcome()
-    data_gruppen_csv, turniername, teams = turnier_setup()
-    gruppen = gruppen_anlage(data_gruppen_csv, turniername, teams)
+    turniername, teams = turnier_setup()
+    gruppen, teams = gruppen_anlage(turniername, teams)
 
-    if not os.path.isfile(f"turniere/{turniername}/runden.csv"):
-        runden = spielplan_erstellen(turniername, teams, gruppen)
+    if os.path.isfile(f"turniere/{turniername}/runden.json"):
+        runden = runden_daten_aus_json(turniername, teams, gruppen)
     else:
-        runden = runden_daten_aus_csv(turniername, gruppen)
+        runden = spielplan_erstellen(turniername, teams, gruppen)
 
     #test, der aufgebauten Daten
-    for runden_jeder_gruppe in runden:
-        print(runden_jeder_gruppe.rundenzahl)
-        for spiele_der_runde in runden_jeder_gruppe.spiele:
-            print(spiele_der_runde.paar)
+    for runden_der_gruppen in runden:
+        for runden_aus_runden in runden_der_gruppen:
+            print(runden_aus_runden.rundenzahl)
+            for spiel_aus_spielen in runden_aus_runden.spiele:
+                print(spiel_aus_spielen.paar)
 
     for gruppe_aus_gruppen in gruppen:
         print(gruppe_aus_gruppen.name)
