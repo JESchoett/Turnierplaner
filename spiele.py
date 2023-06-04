@@ -31,9 +31,10 @@ class Spiel():
                 self.team_1.punkte += 1
                 self.team_2.punkte += 1
 
-            self.team_1.treffer += team_1_punkte
+            self.team_1.treffer       += team_1_punkte
             self.team_1.gegentreffer  += team_2_punkte
-            self.team_2.treffer += team_2_punkte
+
+            self.team_2.treffer       += team_2_punkte
             self.team_2.gegentreffer  += team_1_punkte
 
             self.gespielt = True

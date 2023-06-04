@@ -3,3 +3,5 @@
 *.pyc
 *.pyc
 __pycache__/team.cpython-38.pyc
+turniere/test2/gruppen.json
+*.json
