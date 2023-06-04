@@ -19,7 +19,7 @@ class Spiel():
         """
         Übergabe des Ergebnises an die punkte_vergabe aus dem Life Programm
         """
-        if self.team_1.name != "-" and self.team_2.name != "-":
+        if self.team_1.name[0] != "-" and self.team_2.name[0] != "-":
             self.ergebnis[0] = team_1_punkte
             self.ergebnis[1] = team_2_punkte
 

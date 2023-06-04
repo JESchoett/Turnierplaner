@@ -147,8 +147,6 @@ def gruppen_anlage(turniername, teams_lokal):
         else:
             gruppen_in_turnier[team_aus_teams.gruppe] += 1
 
-    print(f"gruppen die mitspielen: {gruppen_in_turnier}")
-
     for gruppe_aus_json,anzahl_der_teams in gruppen_in_turnier.items():
         if anzahl_der_teams % 2 > 0:
             filler_team = "-"+gruppe_aus_json
@@ -338,21 +336,6 @@ def runden_daten_aus_json(turniername, teams_lokal, gruppen_lokal):
 
     return runden_lokal, runden_sind_eingetragen
 
-def test_der_daten(gruppen_lokal, runden_lokal):
-    """
-    test, der aufgebauten Daten
-    """
-    for runden_der_gruppen in runden_lokal:
-        for runde_aus_runden in runden_der_gruppen:
-            print(runde_aus_runden.rundenzahl)
-            for spiel_aus_spielen in runde_aus_runden.spiele:
-                print(spiel_aus_spielen.paar)
-
-    for gruppe_aus_gruppen in gruppen_lokal:
-        print(gruppe_aus_gruppen.name)
-        for team_aus_teams in gruppe_aus_gruppen.teams_in_gruppe:
-            print(f"{team_aus_teams.name} hat {team_aus_teams.punkte} punkte")
-
 def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
     """
     eintragen der Ergebnise in die Spiele, sowie Anpassung der Punkte der Teams
@@ -373,6 +356,7 @@ def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
             else:
                 eingabe_erkannt = True
 
+    runde_aktuell_und_max = {}
     for index_gruppe, (name_der_gruppe, runde_aktuell_und_max) in enumerate(runden_sind_eingetragen.items()):
         if index_gruppe == eingabe_gruppe:
             break
@@ -447,19 +431,40 @@ def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
             else:
                 print("ungueltige eingabe")
 
-def tabelle(gruppen_lokal):
+def tabelle_erstellen(gruppen_lokal):
     """
     zusammenstellung der aktuellen tabelle
     """
     #je gruppe team: name punktzahl und tordifferenz
-    punkte_aktuell = {}
+    tabelle_lokal = {}
     for gruppe_aus_gruppen in gruppen_lokal:
         aktuelle_gruppe = {}
         for team_aus_teams in gruppe_aus_gruppen.teams_in_gruppe:
             aktuelle_gruppe[team_aus_teams.name] = {"punkte":team_aus_teams.punkte,
                                                     "treffer_diff": team_aus_teams.treffer - team_aus_teams.gegentreffer}
-        punkte_aktuell[gruppe_aus_gruppen.name]
-    #wenn punktzahl = tordifferenz -> direktvergleich
+        tabelle_lokal[gruppe_aus_gruppen.name] = aktuelle_gruppe
+
+    for gruppe_der_tabelle in tabelle_lokal:
+        tabelle_lokal[gruppe_der_tabelle] = sorted(tabelle_lokal[gruppe_der_tabelle].items(), key=lambda x: (x[1]['punkte'], x[1]['treffer_diff']), reverse=True)
+        tabelle_lokal[gruppe_der_tabelle] = dict(tabelle_lokal[gruppe_der_tabelle])
+
+    return tabelle_lokal
+
+def tabelle_darstellen(tabelle_lokal):
+    for gruppe_der_tabelle, teams_der_tabelle in tabelle_lokal.items():
+        print("-------------------------------------------------------")
+        print("| Position | Team              | Punkte | Trefferdiff |")
+        print("|----------|-------------------|--------|-------------|")
+        print(f"| {'gruppe ' + gruppe_der_tabelle:^42}          |")
+        print("|----------|-------------------|--------|-------------|")
+        index_position = 0
+        for team_in_gruppe, stats_des_teams in teams_der_tabelle.items():
+            index_position += 1
+            print(f"|    {index_position:2}    | {team_in_gruppe:<16}  |   {stats_des_teams['punkte']:2}   |     {stats_des_teams['treffer_diff']:3}     |")
+            #right-aligned in field with    left-aligned
+
+        print("-------------------------------------------------------\n")
+
 
 def main():
     """
@@ -478,18 +483,18 @@ def main():
     else:
         runden, runden_sind_eingetragen = spielplan_erstellen(turniername, teams, gruppen)
 
-    #test_der_daten(gruppen, runden)
     running = True
     while running:
-        next_action = input("""aktionen: \n
+        next_action = input("""aktionen:
 [0]: Spiel eintragen\n[1]: Tabelle generieren\n[2]: Speichern des Turnieres\n[3]: Stop das Programm\n
 """)
         if next_action == "0":
             print("es werden spiele eingetragen")
             spiel_eintragen(runden_sind_eingetragen, runden)
         elif next_action == "1":
-            print("die tabelle wird generiert...")
-            #tabelle(gruppen)
+            print("die tabelle wird generiert...\n")
+            tabelle = tabelle_erstellen(gruppen)
+            tabelle_darstellen(tabelle)
         elif next_action == "2":
             print("der aktuelle Stand wird gespeichert")
             runden_json_erstellen(turniername, runden, teams)
