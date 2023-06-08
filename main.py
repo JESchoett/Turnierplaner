@@ -19,7 +19,6 @@ def welcome():
     if not os.path.isdir("turniere"):
         os.mkdir("turniere")
 
-
 def neues_team(name_des_teams, gruppe_des_teams):
     """
     anlage eines Team Objektes
@@ -78,10 +77,11 @@ def turnier_setup():
         return turniername, lokal_teams
     else:
         print("kein turnier gefunden... ein neues turnier wird angelegt")
-        os.mkdir(f"turniere/{turniername}")
+        if not os.path.isdir(f"turniere/{turniername}"):
+            os.mkdir(f"turniere/{turniername}")
         weitere_teams_anlegen = True
         while weitere_teams_anlegen:
-            weitere_anlage = input("möchtest du ein neues Team Anlegen? (J/N): ").lower()
+            weitere_anlage = input("möchtest du ein neues Team Anlegen? (J/N):\n").lower()
             if  weitere_anlage == "n":
                 weitere_teams_anlegen = False
             else:
@@ -101,8 +101,8 @@ def turnier_setup():
                             print("ungueltige eingabe")
                         else:
                             eingabe_erkannt = True
-                    bestaetigung_eingabe = input(f"das team: {name_des_teams}\nspielt in: {gruppe_des_teams}\nist das korrekt? (y/n)").lower()
-                    if bestaetigung_eingabe == "y":
+                    bestaetigung_eingabe = input(f"das team: {name_des_teams}\nspielt in: {gruppe_des_teams}\nist das korrekt? (J/N):\n").lower()
+                    if bestaetigung_eingabe == "j" or bestaetigung_eingabe == "y"  or bestaetigung_eingabe == "y" :
                         check_eingabe = True
 
                 if len(gruppe_des_teams) == 0:
@@ -153,7 +153,7 @@ def gruppen_anlage(turniername, teams_lokal):
             teams_lokal.append(neues_team(filler_team, gruppe_aus_json))
             gruppen_in_turnier[gruppe_aus_json] += 1
 
-        runden_werden_gespielt = 0
+        spiele_werden_gespielt = 0
 
         if not os.path.isfile(f"turniere/{turniername}/runden.json"):
             eingabe_erkannt = False
@@ -163,27 +163,27 @@ def gruppen_anlage(turniername, teams_lokal):
 wie viele Runden werden gespielt?: ''')
 
                 if runden_anfrage_modus.isdigit():
-                    runden_werden_gespielt = int(runden_werden_gespielt)
-                    if runden_werden_gespielt > anzahl_der_teams*(anzahl_der_teams-1):
-                        runden_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
+                    spiele_werden_gespielt = int(runden_anfrage_modus)
+                    if spiele_werden_gespielt > anzahl_der_teams*(anzahl_der_teams-1):
+                        spiele_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
                     eingabe_erkannt = True
                 elif runden_anfrage_modus[0].lower() == "r":
-                    runden_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
+                    spiele_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
                     eingabe_erkannt = True
                 elif runden_anfrage_modus[0].lower() == "h":
-                    runden_werden_gespielt = anzahl_der_teams/2*(anzahl_der_teams-1)
+                    spiele_werden_gespielt = anzahl_der_teams/2*(anzahl_der_teams-1)
                     eingabe_erkannt = True
                 else:
                     print("eingabe nicht erkannt")
 
-            print(f"es werden {runden_werden_gespielt} runden in dieser Gruppe gespielt")
+            print(f"es werden {spiele_werden_gespielt} spiele in dieser Gruppe gespielt")
 
         teams_in_gruppe = []
         for team_aus_teams in teams_lokal:
             if gruppe_aus_json == team_aus_teams.gruppe:
                 teams_in_gruppe.append(team_aus_teams)
 
-        gruppen_lokal.append(neue_gruppe(gruppe_aus_json,runden_werden_gespielt,teams_in_gruppe))
+        gruppen_lokal.append(neue_gruppe(gruppe_aus_json,spiele_werden_gespielt,teams_in_gruppe))
 
     for team_aus_teams in teams_lokal:
         for gruppe_aus_gruppen in gruppen_lokal:
@@ -217,8 +217,9 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
 
         runden_aufsetzen = {}
         runden_counter = 0
+        spiele_counter = 0
         runden_aktuelle_gruppe = []
-        while runden_counter < gruppe_aus_gruppen.spieleanzahl:
+        while spiele_counter != gruppe_aus_gruppen.spieleanzahl:
             runden_counter += 1
             paare_der_runden = []
             teams_haben_gespielt = []
@@ -233,11 +234,12 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
                     paare_der_runden.append(paar)
                     teams_haben_gespielt.append(team_1)
                     teams_haben_gespielt.append(team_2)
+                    spiele_counter += 1
 
             runden_aufsetzen[runden_counter] = paare_der_runden
 
         runden_counter = 0
-        for runde_aus_aufsetzen, spiele_der_runde in runden_aufsetzen.items():
+        for runde_des_aufsetzen, spiele_der_runde in runden_aufsetzen.items():
             runden_counter += 1
             spiele_lokal = []
             for paar in spiele_der_runde:
@@ -250,9 +252,7 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
                 paar = f"{team_1.name}/{team_2.name}"
                 spiele_lokal.append(neues_spiel(paar,team_1,team_2,runden_counter, False, [0,0]))
 
-            runden_aktuelle_gruppe.append(neue_runde(runde_aus_aufsetzen,spiele_lokal, False, gruppe_aus_gruppen.name))
-
-        runden_lokal.append(runden_aktuelle_gruppe)
+            runden_aktuelle_gruppe.append(neue_runde(runde_des_aufsetzen,spiele_lokal, False, gruppe_aus_gruppen.name))
 
         for runde_der_gruppe in runden_aktuelle_gruppe:
             print(f"Rundenr: {runde_der_gruppe.rundenzahl}")
@@ -260,9 +260,11 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
                 print(f"es spielen: {spiele_der_runde.paar}")
         print("-----")
 
+        runden_lokal.append(runden_aktuelle_gruppe)
+
         #um zu tracken in welcher runde der Eintragung wir sind
         runden_sind_eingetragen[gruppe_aus_gruppen.name] = {"runde_eintragen":0,
-                                                            "max_runden": gruppe_aus_gruppen.spieleanzahl}
+                                                            "max_runden": runden_counter}
 
     runden_json_erstellen(turniername, runden_lokal, teams_lokal)
     return runden_lokal, runden_sind_eingetragen
@@ -406,8 +408,8 @@ def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
             ergebnis_des_spieles.append(int(eingabe_punkte))
         else:
             ergebnis_des_spieles.append(0)
-        bestaetigung_eingabe = input(f"das ergebnis ist also: {ergebnis_des_spieles}\nist das korrekt? (y/n)").lower()
-        if bestaetigung_eingabe == "y":
+        bestaetigung_eingabe = input(f"das ergebnis ist also: {ergebnis_des_spieles}\nist das korrekt? (J/N):\n").lower()
+        if bestaetigung_eingabe == "j" or bestaetigung_eingabe == "y" :
             eingabe_erkannt = True
 
     if not (spiel_der_eingabe.team_1.name[0] == "-" or spiel_der_eingabe.team_2.name[0] == "-"):
@@ -422,8 +424,8 @@ def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
         print("alle spiele dieser Runde sind eingetragen")
         eingabe_erkannt = False
         while not eingabe_erkannt:
-            eingabe_runden_erhoehen = input("soll die runde abgeschlossen werden? (y/n):\n").lower()
-            if eingabe_runden_erhoehen == "y":
+            eingabe_runden_erhoehen = input("soll die runde abgeschlossen werden? (J/N):\n").lower()
+            if eingabe_runden_erhoehen == "j" or eingabe_runden_erhoehen == "y":
                 runden_sind_eingetragen[name_der_gruppe]["runde_eintragen"] = runde_eintragen + 1
                 eingabe_erkannt = True
             elif eingabe_runden_erhoehen == "n":
@@ -451,6 +453,9 @@ def tabelle_erstellen(gruppen_lokal):
     return tabelle_lokal
 
 def tabelle_darstellen(tabelle_lokal):
+    """
+    darstellung einer Tabelle
+    """
     for gruppe_der_tabelle, teams_der_tabelle in tabelle_lokal.items():
         print("-------------------------------------------------------")
         print("| Position | Team              | Punkte | Trefferdiff |")
@@ -486,7 +491,7 @@ def main():
     running = True
     while running:
         next_action = input("""aktionen:
-[0]: Spiel eintragen\n[1]: Tabelle generieren\n[2]: Speichern des Turnieres\n[3]: Stop das Programm\n
+[0]: Spiel eintragen\n[1]: Tabelle generieren\n[2]: Speichern des Turnieres\n[3]: Stop das Programm
 """)
         if next_action == "0":
             print("es werden spiele eingetragen")
