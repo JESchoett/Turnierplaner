@@ -1,17 +1,20 @@
 """
 Deklaration der Klasse Team
 """
+from dataclasses import dataclass
+from typing import Union
+from gruppe import Gruppe
 
-class Team():
+@dataclass
+class Team:
     """
     Klasse die die Daten eines Teams speichert
     """
-    def __init__(self, name, gruppe, punkte = 0, treffer = 0, gegentreffer = 0):
-        self.name = name
-        self.gruppe = gruppe
-        self.punkte = punkte
-        self.treffer = treffer
-        self.gegentreffer = gegentreffer
+    name: str
+    gruppe: Union[str, Gruppe]
+    punkte: int
+    treffer: int
+    gegentreffer: int
 
     def gruppe_aendern(self, neue_gruppe):
         """

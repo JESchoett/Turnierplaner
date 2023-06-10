@@ -1,7 +1,7 @@
 """
 Deklaration der Klasse Gruppe
 """
-class Gruppe():
+class Gruppe:
     """
     Gruppe die alle Teams einer Gruppe speichert
     """

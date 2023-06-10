@@ -11,48 +11,9 @@ from gruppe import Gruppe
 from spiele import Spiel
 from runde import Runde
 
-from main import welcome, neues_team, neue_gruppe, neue_runde, neues_spiel, turnier_setup, gruppen_anlage, spielplan_erstellen, runden_daten_aus_json, spiel_eintragen
+from main import welcome, turnier_setup, gruppen_anlage, spielplan_erstellen, runden_daten_aus_json, spiel_eintragen
 
-class Test_neue_Objekte_erstellung(unittest.TestCase):
-    def test_welcome(self):
-        with patch('builtins.print') as mocked_print:
-            welcome()
-            mocked_print.assert_called_with("Willkommen beim Turnierplaner")
-
-    def test_neues_team(self):
-        team = neues_team("Team A", "Gruppe 1")
-        self.assertIsInstance(team, Team)
-        self.assertEqual(team.name, "Team A")
-        self.assertEqual(team.gruppe, "Gruppe 1")
-
-    def test_neue_gruppe(self):
-        gruppe = neue_gruppe("Gruppe 1", 5, [])
-        self.assertIsInstance(gruppe, Gruppe)
-        self.assertEqual(gruppe.name, "Gruppe 1")
-        self.assertEqual(gruppe.spieleanzahl, 5)
-        self.assertEqual(gruppe.teams_in_gruppe, [])
-
-    def test_neue_runde(self):
-        runde = neue_runde(1, [], False, "Gruppe 1")
-        self.assertIsInstance(runde, Runde)
-        self.assertEqual(runde.rundenzahl, 1)
-        self.assertEqual(runde.spiele, [])
-        self.assertFalse(runde.runde_gespielt)
-        self.assertEqual(runde.gruppe_der_runde, "Gruppe 1")
-
-    def test_neues_spiel(self):
-        spiel = neues_spiel("Team A/Team B", Team("Team A", "Gruppe 1"), Team("Team B", "Gruppe 1"), 1, False, [0, 0])
-        self.assertIsInstance(spiel, Spiel)
-        self.assertEqual(spiel.paar, "Team A/Team B")
-        self.assertIsInstance(spiel.team_1, Team)
-        self.assertEqual(spiel.team_1.name, "Team A")
-        self.assertIsInstance(spiel.team_2, Team)
-        self.assertEqual(spiel.team_2.name, "Team B")
-        self.assertEqual(spiel.runde, 1)
-        self.assertFalse(spiel.gespielt)
-        self.assertEqual(spiel.ergebnis, [0, 0])
-
-class Test_Teams_aus_turnier_setup(unittest.TestCase):
+class TestTeamsAusTurnierSetup(unittest.TestCase):
     @patch('builtins.input', side_effect=['Test-Turnier', 'n'])
     def test_turnier_setup_existing_json(self, mock_input):
         # Erstellen einer vorhandenen JSON-Datei für den Test
@@ -111,7 +72,7 @@ class Test_Teams_aus_turnier_setup(unittest.TestCase):
 
         os.remove("turniere/Test-Turnier/gruppen.json")
 
-class Test_GruppenTeams_aus_gruppen_anlage(unittest.TestCase):
+class TestGruppenTeamsAusGruppenAnlage(unittest.TestCase):
     def setUp(self):
         # Create a patch for 'builtins.input'
         self.mock_input = patch('builtins.input', side_effect=['Test-Turnier', 'n'])
@@ -193,7 +154,7 @@ class Test_GruppenTeams_aus_gruppen_anlage(unittest.TestCase):
         self.assertEqual(gruppen_lokal[0].spieleanzahl, 9)
         self.assertEqual(len(gruppen_lokal[0].teams_in_gruppe), 4)
 
-class Test_Runden_aus_spielplan_erstellen(unittest.TestCase):
+class TestRundenAusSpielplanErstellen(unittest.TestCase):
     def setUp(self):
         # Create a patch for 'builtins.input'
         self.mock_input = patch('builtins.input', side_effect=['Test-Turnier', 'n', 'r'])
@@ -260,7 +221,7 @@ class Test_Runden_aus_spielplan_erstellen(unittest.TestCase):
         self.assertEqual(runden_sind_eingetragen['A']['runde_eintragen'], 0)
         self.assertEqual(runden_sind_eingetragen['A']['max_runden'], 6)
 
-class Test_Runden_aus_runden_daten_aus_json(unittest.TestCase):
+class TestRundenAusRundenDatenAusJson(unittest.TestCase):
     def setUp(self):
         # Create a patch for 'builtins.input'
         self.mock_input = patch('builtins.input', side_effect=['Test-Turnier', 'n'])
@@ -494,7 +455,7 @@ class Test_Runden_aus_runden_daten_aus_json(unittest.TestCase):
         #es werden 6 Runden mit je 2 Spielen gespielt
         self.assertEqual(spiele_counter, 12)
 
-class Test_spiel_eintragen(unittest.TestCase):
+class TestSpielEintragen(unittest.TestCase):
     def setUp(self):
         # Create a patch for 'builtins.input'
         self.mock_input = patch('builtins.input', side_effect=['Test-Turnier', 'n'])

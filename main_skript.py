@@ -19,43 +19,18 @@ def welcome():
     if not os.path.isdir("turniere"):
         os.mkdir("turniere")
 
-def neues_team(name_des_teams, gruppe_des_teams):
-    """
-    anlage eines Team Objektes
-    """
-    erstelltes_team = Team(name = name_des_teams, gruppe=gruppe_des_teams)
-    return erstelltes_team
-
-def neue_gruppe(name, spieleanzahl, teams_in_gruppe):
-    """
-    anlage eines Gruppe Objektes
-    """
-    erstellte_gruppe = Gruppe(name, spieleanzahl, teams_in_gruppe)
-    return erstellte_gruppe
-
-def neue_runde(rundenzahl, spiele, runde_gespielt, gruppe_der_runde):
-    """
-    anlage eines Runde Objektes
-    """
-    erstellte_runde = Runde(rundenzahl, spiele, runde_gespielt, gruppe_der_runde)
-    return erstellte_runde
-
-def neues_spiel(paar, team_1, team_2, runde, gespielt, ergebnis):
-    """
-    anlage eines Spiel Objektes
-    """
-    erstelltes_spiel = Spiel(paar, team_1, team_2, runde,gespielt, ergebnis)
-    return erstelltes_spiel
-
 def turnier_setup():
-    """
-    erstellt die Objekte für jedes Team
+    """erstellt die Objekte für jedes Team
     wenn es eine gruppen.json gibt werden hieraus die Daten der Gruppen Erstellt
+
+    Returns:
+        turniername str: turniername (Der name des Turnieres)
+        teams_lokal list: Eine Liste aller Team Objekte
     """
     eingabe_erkannt = False
     while not eingabe_erkannt:
         turniername = input("Turniername angeben:\n")
-        if not turniername.isspace() and turniername.isprintable():
+        if turniername.isspace() or not turniername.isprintable():
             print("ungueltige eingabe")
         else:
             eingabe_erkannt = True
@@ -107,14 +82,18 @@ def turnier_setup():
 
                 if len(gruppe_des_teams) == 0:
                     gruppe_des_teams = 0
-                teams_lokal.append(neues_team(name_des_teams, gruppe_des_teams))
+                teams_lokal.append(Team(name=name_des_teams, gruppe=gruppe_des_teams,punkte=0,treffer=0,gegentreffer=0))
         dataframe = pd.DataFrame(data=teams_lokal)
         dataframe.to_json(f"turniere/{turniername}/gruppen.json")
         return turniername, teams_lokal
 
 def runden_json_erstellen(turniername, runden_lokal, teams_lokal):
-    """
-    erstellung des runden.json aus den Spielen aller Runden
+    """erstellung des runden.json aus den Spielen aller Runden
+
+    Args:
+        turniername  str: Name des Turnieres
+        runden_lokal list: Liste aller Runden Objekte
+        teams_lokal  list: Liste aller Team Objekte
     """
     for runden_der_gruppen in runden_lokal:
         for runde_aus_runden in runden_der_gruppen:
@@ -134,9 +113,13 @@ def runden_json_erstellen(turniername, runden_lokal, teams_lokal):
                     if spiel_aus_spielen.team_2 == team_aus_teams.name:
                         spiel_aus_spielen.team_2 = team_aus_teams
 
+
 def gruppen_anlage(turniername, teams_lokal):
-    """
-    erstellt die Objekte für jede Gruppe
+    """erstellt die Objekte für jede Gruppe
+
+    Args:
+        turniername  str: Name des Turnieres
+        teams_lokal  list: Liste aller Team Objekte
     """
     gruppen_lokal = []
     gruppen_in_turnier = {}
@@ -150,7 +133,7 @@ def gruppen_anlage(turniername, teams_lokal):
     for gruppe_aus_json,anzahl_der_teams in gruppen_in_turnier.items():
         if anzahl_der_teams % 2 > 0:
             filler_team = "-"+gruppe_aus_json
-            teams_lokal.append(neues_team(filler_team, gruppe_aus_json))
+            teams_lokal.append(Team(name=filler_team, gruppe=gruppe_aus_json,punkte=0,treffer=0,gegentreffer=0))
             gruppen_in_turnier[gruppe_aus_json] += 1
 
         spiele_werden_gespielt = 0
@@ -183,7 +166,7 @@ wie viele Runden werden gespielt?: ''')
             if gruppe_aus_json == team_aus_teams.gruppe:
                 teams_in_gruppe.append(team_aus_teams)
 
-        gruppen_lokal.append(neue_gruppe(gruppe_aus_json,spiele_werden_gespielt,teams_in_gruppe))
+        gruppen_lokal.append(Gruppe(gruppe_aus_json,spiele_werden_gespielt,teams_in_gruppe))
 
     for team_aus_teams in teams_lokal:
         for gruppe_aus_gruppen in gruppen_lokal:
@@ -191,10 +174,19 @@ wie viele Runden werden gespielt?: ''')
                 team_aus_teams.gruppe_aendern(gruppe_aus_gruppen)
     return gruppen_lokal, teams_lokal
 
+
 def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
-    """
-    erstellt die Objekte für jede Runde und Spiele jeder Gruppe
+    """erstellt die Objekte für jede Runde und Spiele jeder Gruppe
     außerdem wird die erstmalige erstellung der runden.json aufgerufen
+
+    Args:
+        turniername   str: Name des Turnieres
+        teams_lokal   list: Liste aller Team Objekte
+        gruppen_lokal list: Liste aller Gruppen Objekte
+
+    Returns:
+        runden_lokal            list: Liste aller Team Objekte
+        runden_sind_eingetragen dic: Der aktuelle Status der Spieleeintragung
     """
     runden_lokal = []
     runden_sind_eingetragen = {}
@@ -250,9 +242,9 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
                     if team_2 == team_aus_teams.name:
                         team_2 = team_aus_teams
                 paar = f"{team_1.name}/{team_2.name}"
-                spiele_lokal.append(neues_spiel(paar,team_1,team_2,runden_counter, False, [0,0]))
+                spiele_lokal.append(Spiel(paar,team_1,team_2,runden_counter, False, [0,0]))
 
-            runden_aktuelle_gruppe.append(neue_runde(runde_des_aufsetzen,spiele_lokal, False, gruppe_aus_gruppen.name))
+            runden_aktuelle_gruppe.append(Runde(runde_des_aufsetzen,spiele_lokal, False, gruppe_aus_gruppen.name))
 
         for runde_der_gruppe in runden_aktuelle_gruppe:
             print(f"Rundenr: {runde_der_gruppe.rundenzahl}")
@@ -269,9 +261,19 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
     runden_json_erstellen(turniername, runden_lokal, teams_lokal)
     return runden_lokal, runden_sind_eingetragen
 
+
 def runden_daten_aus_json(turniername, teams_lokal, gruppen_lokal):
-    """
-    liest aus der runden.json die Runden und Gruppen aus und erstellt die Objekte für jede Runde und Spiel
+    """liest aus der runden.json die Runden und Gruppen aus und
+    erstellt die Objekte für jede Runde und Spiel
+
+    Args:
+        turniername   str: Name des Turnieres
+        teams_lokal   list: Liste aller Team Objekte
+        gruppen_lokal list: Liste aller Gruppen Objekte
+
+    Returns:
+        runden_lokal            list: Liste aller Team Objekte
+        runden_sind_eingetragen dic: Der aktuelle Status der Spieleeintragung
     """
     print("es liegt ein Rundenplan vor")
     runden_lokal = []
@@ -338,12 +340,19 @@ def runden_daten_aus_json(turniername, teams_lokal, gruppen_lokal):
 
     return runden_lokal, runden_sind_eingetragen
 
-def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
-    """
-    eintragen der Ergebnise in die Spiele, sowie Anpassung der Punkte der Teams
 
+def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
+    """ eintragen der Ergebnise in die Spiele, sowie Anpassung der Punkte der Teams
     anfrage, fuer welche Gruppe und welches Spiel der Runde eine Eintragung stattfinden soll
     eintragung der Ergebnise und vermerkung dieser in den Teams
+
+    Args:
+        runden_sind_eingetragen dic: Der aktuelle Status der Spieleeintragung
+        runden_lokal            list: Liste aller Team Objekte
+
+    Returns:
+        runden_sind_eingetragen dic: Der aktuelle Status der Spieleeintragung
+        runden_lokal            list: Liste aller Team Objekte
     """
     for index_gruppe, (name_der_gruppe, aktuelle_runde) in enumerate(runden_sind_eingetragen.items()):
         print(f"[{index_gruppe}]: gruppe {name_der_gruppe}")
@@ -412,7 +421,7 @@ def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
         if bestaetigung_eingabe == "j" or bestaetigung_eingabe == "y" :
             eingabe_erkannt = True
 
-    if not (spiel_der_eingabe.team_1.name[0] == "-" or spiel_der_eingabe.team_2.name[0] == "-"):
+    if not (spiel_der_eingabe.team_1.name.startswith("-") or spiel_der_eingabe.team_2.name.startswith("-")):
         spiel_der_eingabe.ergebnis_eintragen(ergebnis_des_spieles[0], ergebnis_des_spieles[1])
 
     rundenzahl_erhoehen = True
@@ -433,9 +442,15 @@ def spiel_eintragen(runden_sind_eingetragen, runden_lokal):
             else:
                 print("ungueltige eingabe")
 
+
 def tabelle_erstellen(gruppen_lokal):
-    """
-    zusammenstellung der aktuellen tabelle
+    """zusammenstellung der aktuellen tabelle
+
+    Args:
+        gruppen_lokal list: Liste aller Gruppen Objekte
+
+    Returns:
+        tabelle_lokal dic: Sortiertes Dictonary des aktuellen Tabellenstandes je Gruppe
     """
     #je gruppe team: name punktzahl und tordifferenz
     tabelle_lokal = {}
@@ -451,6 +466,7 @@ def tabelle_erstellen(gruppen_lokal):
         tabelle_lokal[gruppe_der_tabelle] = dict(tabelle_lokal[gruppe_der_tabelle])
 
     return tabelle_lokal
+
 
 def tabelle_darstellen(tabelle_lokal):
     """
