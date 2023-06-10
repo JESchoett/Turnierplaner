@@ -3,13 +3,12 @@ Ablaufsteuerung des Turnierplans
 """
 import os
 import random
-import pandas
+import pandas as pd
 
 from team import Team
 from gruppe import Gruppe
 from spiele import Spiel
 from runde import Runde
-from funktionen_neu import neues_team, neue_gruppe, neue_runde, neues_spiel
 
 def welcome():
     """
@@ -20,6 +19,34 @@ def welcome():
     if not os.path.isdir("turniere"):
         os.mkdir("turniere")
 
+def neues_team(name_des_teams, gruppe_des_teams):
+    """
+    anlage eines Team Objektes
+    """
+    erstelltes_team = Team(name = name_des_teams, gruppe=gruppe_des_teams)
+    return erstelltes_team
+
+def neue_gruppe(name, spieleanzahl, teams_in_gruppe):
+    """
+    anlage eines Gruppe Objektes
+    """
+    erstellte_gruppe = Gruppe(name, spieleanzahl, teams_in_gruppe)
+    return erstellte_gruppe
+
+def neue_runde(rundenzahl, spiele, runde_gespielt, gruppe_der_runde):
+    """
+    anlage eines Runde Objektes
+    """
+    erstellte_runde = Runde(rundenzahl, spiele, runde_gespielt, gruppe_der_runde)
+    return erstellte_runde
+
+def neues_spiel(paar, team_1, team_2, runde, gespielt, ergebnis):
+    """
+    anlage eines Spiel Objektes
+    """
+    erstelltes_spiel = Spiel(paar, team_1, team_2, runde,gespielt, ergebnis)
+    return erstelltes_spiel
+
 def turnier_setup():
     """
     erstellt die Objekte für jedes Team
@@ -28,14 +55,14 @@ def turnier_setup():
     eingabe_erkannt = False
     while not eingabe_erkannt:
         turniername = input("Turniername angeben:\n")
-        if turniername.isspace() or not turniername.isprintable():
+        if not turniername.isspace() and turniername.isprintable():
             print("ungueltige eingabe")
         else:
             eingabe_erkannt = True
 
     teams_lokal = []
     if os.path.isfile(f"turniere/{turniername}/gruppen.json"):
-        data_gruppen_json = pandas.read_json(f"turniere/{turniername}/gruppen.json")
+        data_gruppen_json = pd.read_json(f"turniere/{turniername}/gruppen.json")
         print("turnier wurde gefunden")
         for column in data_gruppen_json:
             for _, team_data in data_gruppen_json[column].items():
@@ -81,7 +108,7 @@ def turnier_setup():
                 if len(gruppe_des_teams) == 0:
                     gruppe_des_teams = 0
                 teams_lokal.append(neues_team(name_des_teams, gruppe_des_teams))
-        dataframe = pandas.DataFrame(data=teams_lokal)
+        dataframe = pd.DataFrame(data=teams_lokal)
         dataframe.to_json(f"turniere/{turniername}/gruppen.json")
         return turniername, teams_lokal
 
@@ -95,7 +122,7 @@ def runden_json_erstellen(turniername, runden_lokal, teams_lokal):
                 spiel_aus_spielen.team_1 = spiel_aus_spielen.team_1.name
                 spiel_aus_spielen.team_2 = spiel_aus_spielen.team_2.name
 
-    dataframe = pandas.DataFrame(data=runden_lokal)
+    dataframe = pd.DataFrame(data=runden_lokal)
     dataframe.to_json(f"turniere/{turniername}/runden.json")
 
     for runden_der_gruppen in runden_lokal:
@@ -115,7 +142,7 @@ def gruppen_anlage(turniername, teams_lokal):
     gruppen_in_turnier = {}
 
     for team_aus_teams in teams_lokal:
-        if team_aus_teams.gruppe not in gruppen_in_turnier:
+        if team_aus_teams.gruppe not in gruppen_in_turnier.keys():
             gruppen_in_turnier[team_aus_teams.gruppe] = 1
         else:
             gruppen_in_turnier[team_aus_teams.gruppe] += 1
@@ -249,7 +276,7 @@ def runden_daten_aus_json(turniername, teams_lokal, gruppen_lokal):
     print("es liegt ein Rundenplan vor")
     runden_lokal = []
 
-    data_runden_json = pandas.read_json(f"turniere/{turniername}/runden.json")
+    data_runden_json = pd.read_json(f"turniere/{turniername}/runden.json")
 
     #jede Gruppe hat in der runden liste eine liste mit den runden objekte der Gruppe
     for gruppe_aus_gruppen in gruppen_lokal:
