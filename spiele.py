@@ -1,20 +1,19 @@
 """
 Deklaration der Klasse Spiel
 """
-from dataclasses import dataclass
 from team import Team
 
-@dataclass
 class Spiel:
     """
     Klasse die die Daten eines Spieles speichert
     """
-    paar: str
-    team_1: Team
-    team_2: Team
-    runde: int
-    gespielt: bool
-    ergebnis: list
+    def __init__(self, paar=str, team_1=Team, team_2=Team, runde=int, gespielt=bool, ergebnis=list):
+        self.paar = paar
+        self.team_1 = team_1
+        self.team_2 = team_2
+        self.runde = runde
+        self.gespielt = gespielt
+        self.ergebnis = ergebnis
 
 
     def ergebnis_eintragen(self, team_1_punkte, team_2_punkte):
