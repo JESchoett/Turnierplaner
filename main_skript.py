@@ -82,7 +82,8 @@ def turnier_setup():
 
                 if len(gruppe_des_teams) == 0:
                     gruppe_des_teams = 0
-                teams_lokal.append(Team(name=name_des_teams, gruppe=gruppe_des_teams,punkte=0,treffer=0,gegentreffer=0))
+                neues_team = Team(name=name_des_teams, gruppe=gruppe_des_teams,punkte=0,treffer=0,gegentreffer=0)
+                teams_lokal.append(neues_team)
         dataframe = pd.DataFrame(data=teams_lokal)
         dataframe.to_json(f"turniere/{turniername}/gruppen.json")
         return turniername, teams_lokal
