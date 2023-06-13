@@ -4,7 +4,7 @@ das Design mit den Funktionalitäten des Skriptes zusammenbringe
 """
 import os
 import random
-import pandas
+import pandas as pd
 import customtkinter as ctk
 
 #import der Klassen und Funktionen
@@ -31,7 +31,7 @@ def turnier_setup(turniername, status_anlage, live_frame):
     gruppen_lokal = []
     gruppen_in_turnier = {}
 
-    def gruppen_anlage(teams_lokal, gruppen_lokal, gruppen_in_turnier, live_frame):
+    def gruppen_anlage(teams_lokal, gruppen_lokal, gruppen_in_turnier):
         #erstellen des eines Zählers der Teams je Gruppe, ob ein Filler Team angelegt werden muss
         for team_aus_teams in teams_lokal:
             if team_aus_teams.gruppe not in gruppen_in_turnier:
@@ -88,7 +88,7 @@ def turnier_setup(turniername, status_anlage, live_frame):
         return teams_lokal, gruppen_lokal
 
     if os.path.isfile(f"turniere/{turniername}/gruppen.json"):
-        data_gruppen_json = pandas.read_json(f"turniere/{turniername}/gruppen.json")
+        data_gruppen_json = pd.read_json(f"turniere/{turniername}/gruppen.json")
         print("turnier wurde gefunden")
         #anlage der Teams
         for column in data_gruppen_json:
@@ -101,20 +101,212 @@ def turnier_setup(turniername, status_anlage, live_frame):
                     gegentreffer = team_data.get("gegentreffer", 0)
                 )
                 teams_lokal.append(team)
-        teams_lokal, gruppen_lokal = gruppen_anlage(teams_lokal, gruppen_lokal, gruppen_in_turnier, live_frame)
+        teams_lokal, gruppen_lokal = gruppen_anlage(teams_lokal, gruppen_lokal, gruppen_in_turnier)
     else:
         if status_anlage == "Turnier_Setup_neuanlage":
             for team_name, team_gruppe, ent_button in live_frame.entrys:
                 teams_lokal.append(Team(name=team_name.get(), gruppe=team_gruppe.get(),punkte=0,treffer=0,gegentreffer=0))
 
             #anlage der Grupen.json
-            dataframe = pandas.DataFrame(data=teams_lokal)
+            dataframe = pd.DataFrame(data=teams_lokal)
             dataframe.to_json(f"turniere/{turniername}/gruppen.json")
 
-            teams_lokal, gruppen_lokal = gruppen_anlage(teams_lokal, gruppen_lokal, gruppen_in_turnier, live_frame)
+            teams_lokal, gruppen_lokal = gruppen_anlage(teams_lokal, gruppen_lokal, gruppen_in_turnier)
 
-        return teams_lokal, gruppen_lokal
+    return teams_lokal, gruppen_lokal
 
+
+def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
+    """erstellt die Objekte für jede Runde und Spiele jeder Gruppe
+    außerdem wird die erstmalige erstellung der runden.json aufgerufen
+
+    Args:
+        turniername   str: Name des Turnieres
+        teams_lokal   list: Liste aller Team Objekte
+        gruppen_lokal list: Liste aller Gruppen Objekte
+
+    Returns:
+        runden_lokal            list: Liste aller Team Objekte
+        runden_sind_eingetragen dic: Der aktuelle Status der Spieleeintragung
+    """
+    runden_lokal = []
+    runden_sind_eingetragen = {}
+
+    for gruppe_aus_gruppen in gruppen_lokal:
+        print(f"gruppe: {gruppe_aus_gruppen.name}")
+        teams_in_gruppe = []
+        for teams_aus_gruppe in gruppe_aus_gruppen.teams_in_gruppe:
+            teams_in_gruppe.append(teams_aus_gruppe.name)
+
+        random.shuffle(teams_in_gruppe)
+
+        paare_der_hinrunde = []
+        paare_der_rueckrunde = []
+        for index_i,team_i in enumerate(teams_in_gruppe):
+            for index_j,team_j in enumerate(teams_in_gruppe[index_i+1:], start=index_i+1):
+                paare_der_hinrunde.append((team_i, team_j))
+                paare_der_rueckrunde.append((team_j, team_i))
+        alle_runden = paare_der_hinrunde + paare_der_rueckrunde
+
+        runden_aufsetzen = {}
+        runden_counter = 0
+        spiele_counter = 0
+        runden_aktuelle_gruppe = []
+        while spiele_counter != gruppe_aus_gruppen.spieleanzahl:
+            runden_counter += 1
+            paare_der_runden = []
+            teams_haben_gespielt = []
+            for paar in alle_runden:
+                team_1, team_2 = paar
+                schon_gespielt = False
+                for _, value in runden_aufsetzen.items():
+                    if paar in value:
+                        schon_gespielt = True
+
+                if not schon_gespielt and team_1 not in teams_haben_gespielt and team_2 not in teams_haben_gespielt:
+                    paare_der_runden.append(paar)
+                    teams_haben_gespielt.append(team_1)
+                    teams_haben_gespielt.append(team_2)
+                    spiele_counter += 1
+
+            runden_aufsetzen[runden_counter] = paare_der_runden
+
+        runden_counter = 0
+        for runde_des_aufsetzen, spiele_der_runde in runden_aufsetzen.items():
+            runden_counter += 1
+            spiele_lokal = []
+            for paar in spiele_der_runde:
+                team_1, team_2 = paar
+                for team_aus_teams in teams_lokal:
+                    if team_1 == team_aus_teams.name:
+                        team_1 = team_aus_teams
+                    if team_2 == team_aus_teams.name:
+                        team_2 = team_aus_teams
+                paar = f"{team_1.name}/{team_2.name}"
+                spiele_lokal.append(Spiel(paar,team_1,team_2,runden_counter, False, [0,0]))
+
+            runden_aktuelle_gruppe.append(Runde(runde_des_aufsetzen,spiele_lokal, False, gruppe_aus_gruppen.name))
+
+        for runde_der_gruppe in runden_aktuelle_gruppe:
+            print(f"Rundenr: {runde_der_gruppe.rundenzahl}")
+            for spiele_der_runde in runde_der_gruppe.spiele:
+                print(f"es spielen: {spiele_der_runde.paar}")
+        print("-----")
+
+        runden_lokal.append(runden_aktuelle_gruppe)
+
+        #um zu tracken in welcher runde der Eintragung wir sind
+        runden_sind_eingetragen[gruppe_aus_gruppen.name] = {"runde_eintragen":0,
+                                                            "max_runden": runden_counter}
+
+    runden_json_erstellen(turniername, runden_lokal, teams_lokal)
+    return runden_lokal, runden_sind_eingetragen
+
+
+def runden_daten_aus_json(turniername, teams_lokal, gruppen_lokal):
+    """liest aus der runden.json die Runden und Gruppen aus und
+    erstellt die Objekte für jede Runde und Spiel
+
+    Args:
+        turniername   str: Name des Turnieres
+        teams_lokal   list: Liste aller Team Objekte
+        gruppen_lokal list: Liste aller Gruppen Objekte
+
+    Returns:
+        runden_lokal            list: Liste aller Team Objekte
+        runden_sind_eingetragen dic: Der aktuelle Status der Spieleeintragung
+    """
+    print("es liegt ein Rundenplan vor")
+    runden_lokal = []
+
+    data_runden_json = pd.read_json(f"turniere/{turniername}/runden.json")
+
+    #jede Gruppe hat in der runden liste eine liste mit den runden objekte der Gruppe
+    for gruppe_aus_gruppen in gruppen_lokal:
+        runden_der_gruppe = []
+        for column in data_runden_json:
+            for _, runden_daten in data_runden_json[column].items():
+                if runden_daten is not None:
+                    if gruppe_aus_gruppen.name == runden_daten["gruppe_der_runde"]:
+                        runde = Runde(
+                            rundenzahl       = runden_daten["rundenzahl"],
+                            spiele           = runden_daten["spiele"],
+                            runde_gespielt   = runden_daten["runde_gespielt"],
+                            gruppe_der_runde = runden_daten["gruppe_der_runde"]
+                        )
+                        runden_der_gruppe.append(runde)
+        runden_lokal.append(runden_der_gruppe)
+
+    for runden_der_gruppe in runden_lokal:
+        for runde_aus_runden in runden_der_gruppe:
+            spiele_der_runde = []
+            for spiel_daten in runde_aus_runden.spiele:
+                spiel = Spiel(
+                    paar     = spiel_daten["paar"],
+                    team_1   = spiel_daten["team_1"],
+                    team_2   = spiel_daten["team_2"],
+                    runde    = spiel_daten["runde"],
+                    gespielt = spiel_daten["gespielt"],
+                    ergebnis = spiel_daten["ergebnis"]
+                )
+                spiele_der_runde.append(spiel)
+            runde_aus_runden.spiele = spiele_der_runde
+
+    for runden_der_gruppe in runden_lokal:
+        runden_counter = 0
+        for runde_aus_runden in runden_der_gruppe:
+            runden_counter += 1
+            for spiel_aus_spielen in runde_aus_runden.spiele:
+            #Zuordnung der Teamobjekte zu den jeweiligen Spielen
+                for team_aus_teams in teams_lokal:
+                    if spiel_aus_spielen.team_1 == team_aus_teams.name:
+                        spiel_aus_spielen.team_1 = team_aus_teams
+                    if spiel_aus_spielen.team_2 == team_aus_teams.name:
+                        spiel_aus_spielen.team_2 = team_aus_teams
+        runde_aus_runden.spiele[0].team_1.gruppe.spieleanzahl = runden_counter
+
+    runden_sind_eingetragen = {}
+
+    for runden_der_gruppe in runden_lokal:
+        for runde_aus_runden in runden_der_gruppe:
+            runden_sind_eingetragen[runde_aus_runden.gruppe_der_runde] = {"runde_eintragen":runde_aus_runden.rundenzahl - 1,
+                                                                          "max_runden": runde_aus_runden.spiele[0].team_1.gruppe.spieleanzahl}
+            if not runde_aus_runden.runde_gespielt:
+                break
+
+
+            for spiel_aus_spielen in runde_aus_runden.spiele:
+                if spiel_aus_spielen.gespielt:
+                    spiel_aus_spielen.ergebnis_eintragen(spiel_aus_spielen.ergebnis[0], spiel_aus_spielen.ergebnis[1])
+
+    return runden_lokal, runden_sind_eingetragen
+
+
+def runden_json_erstellen(turniername, runden_lokal, teams_lokal):
+    """erstellung des runden.json aus den Spielen aller Runden
+
+    Args:
+        turniername  str: Name des Turnieres
+        runden_lokal list: Liste aller Runden Objekte
+        teams_lokal  list: Liste aller Team Objekte
+    """
+    for runden_der_gruppen in runden_lokal:
+        for runde_aus_runden in runden_der_gruppen:
+            for spiel_aus_spielen in runde_aus_runden.spiele:
+                spiel_aus_spielen.team_1 = spiel_aus_spielen.team_1.name
+                spiel_aus_spielen.team_2 = spiel_aus_spielen.team_2.name
+
+    dataframe = pd.DataFrame(data=runden_lokal)
+    dataframe.to_json(f"turniere/{turniername}/runden.json")
+
+    for runden_der_gruppen in runden_lokal:
+        for runde_aus_runden in runden_der_gruppen:
+            for spiel_aus_spielen in runde_aus_runden.spiele:
+                for team_aus_teams in teams_lokal:
+                    if spiel_aus_spielen.team_1 == team_aus_teams.name:
+                        spiel_aus_spielen.team_1 = team_aus_teams
+                    if spiel_aus_spielen.team_2 == team_aus_teams.name:
+                        spiel_aus_spielen.team_2 = team_aus_teams
 
 #----- Erstellung der Frames für das GUI -----#
 class WillkommenFrame(ctk.CTkFrame):
@@ -192,8 +384,6 @@ class TeamErstellen(ctk.CTkFrame):
         self.label_team = ctk.CTkLabel(self, text=f"Team Nr. {self.team_row}")
 
         self.team_row += 1
-        #entry_name_t = "entry_team" + str(self.team_row)
-        #entry_name_g = "entry_gruppe" + str(self.team_row)
 
         self.label_team.grid(row=self.team_row, column=0, padx=0, pady=0, sticky="e")
 
@@ -206,7 +396,8 @@ class TeamErstellen(ctk.CTkFrame):
         self.entfernen_btn = ctk.CTkButton(master=self, text="Entfernen")
         command_func = lambda to_del=[self.label_team, self.entry_name_t, self.entry_name_g, self.entfernen_btn]: self.eingabe_weiteres_team_loeaschen(to_del)
         self.entfernen_btn.configure(command= command_func)
-        self.entfernen_btn.grid(row=self.team_row, column=3, padx=(10,30), pady=0, sticky="ew")
+        if len(self.entrys) > 0:
+            self.entfernen_btn.grid(row=self.team_row, column=3, padx=(10,30), pady=0, sticky="ew")
 
         entry_row = (self.entry_name_t, self.entry_name_g, self.entfernen_btn)
         self.entrys.append(entry_row)
@@ -224,6 +415,43 @@ class TeamErstellen(ctk.CTkFrame):
             self.team_row -= 1
             self.weiteres_team_btn.grid(row=self.team_row+1, column=0, padx=(50,50), pady=20, sticky="ew", columnspan=4)
 
+
+class RundenFrame(ctk.CTkFrame):
+    """
+    Frame in denen das Eintragen der Runden durchgeführt wird
+    """
+    def __init__(self, master, runde_lokal, gruppe_der_runde):
+        super().__init__(master)
+        self.row_der_spiele = 0
+        for runde_aus_runden in runden_lokal[gruppe_der_runde]:
+            self.runden_nr = ctk.CTkLabel(self, text=f"Runde: {runde_aus_runden.rundenzahl}")
+            self.runden_nr.grid(row=self.row_der_spiele, column=0, padx=30, pady=10, sticky="ew", columnspan=0)
+            for spiel_aus_spielen in runde_aus_runden.spiele:
+                self.team_1 = ctk.CTkLabel(self, text=f"{spiel_aus_spielen.team_1}")
+                self.team_1.grid(row=self.row_der_spiele, column=1, padx=1, pady=10, sticky="ew", columnspan=0)
+                self.team_2 = ctk.CTkLabel(self, text=f"{spiel_aus_spielen.team_2}")
+                self.team_2.grid(row=self.row_der_spiele, column=2, padx=1, pady=10, sticky="ew", columnspan=0)
+                self.row_der_spiele += 1
+
+
+class MainFrame(ctk.CTkFrame):
+    """
+    Main  frame in dem Spiele eingetragen werden können und die Tabelle dargestellt wird
+    """
+    def __init__(self, master, gruppen_lokal, runde_lokal):
+        super().__init__(master)
+        self.tabview = ctk.CTkTabview(self, width=250)
+        self.tabview.grid(row=0, column=0, padx=10, pady=0, sticky="")
+
+        self.gruppencounter = 0
+        for gruppe_aus_gruppen in gruppen_lokal:
+            self.tabview.add(f"Gruppe {gruppe_aus_gruppen.name}")
+            self.tabview.tab(f"Gruppe {gruppe_aus_gruppen.name}").grid_columnconfigure(0, weight=1)  # configure grid of individual tabs
+
+            self.label_tab_2 = ctk.CTkLabel(self.tabview.tab(f"Gruppe {gruppe_aus_gruppen.name}"), text="CTkLabel on Tab 2")
+            self.label_tab_2.grid(row=0, column=0, padx=20, pady=20)
+
+            self.gruppencounter += 1
 
 #----- Zusammenführung der Frames für das GUI und Handhabung des Ablaufs -----#
 class App(ctk.CTk):
@@ -265,7 +493,8 @@ class App(ctk.CTk):
             print(self.turniername)
             if self.turniername != "" and not self.turniername.isspace() and self.turniername.isprintable():
                 frame.destroy()
-                os.mkdir(f"turniere/{self.turniername}")
+                if not os.path.isdir(f"turniere/{self.turniername}"):
+                    os.mkdir(f"turniere/{self.turniername}")
             else:
                 self.turniername = None
                 return
@@ -283,6 +512,16 @@ class App(ctk.CTk):
                 self.aktueller_status = "Turnier_Setup_angelegt"
         elif self.aktueller_status == "Turnier_Setup_neuanlage":
             self.teams, self.gruppen = turnier_setup(self.turniername, self.aktueller_status, self.live_frame)
+            self.aktueller_status = "Turnier_Setup_angelegt"
+
+        if self.aktueller_status == "Turnier_Setup_angelegt":
+            if os.path.isfile(f"turniere/{self.turniername}/runden.json"):
+                self.runden, self.runden_sind_eingetragen = runden_daten_aus_json(self.turniername, self.teams, self.gruppen)
+            else:
+                self.runden, self.runden_sind_eingetragen = spielplan_erstellen(self.turniername, self.teams, self.gruppen)
+
+            self.main_frame = MainFrame(self, self.gruppen, self.runden)
+            self.main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="")
 
 
 app = App()

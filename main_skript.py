@@ -19,6 +19,7 @@ def welcome():
     if not os.path.isdir("turniere"):
         os.mkdir("turniere")
 
+
 def turnier_setup():
     """erstellt die Objekte für jedes Team
     wenn es eine gruppen.json gibt werden hieraus die Daten der Gruppen Erstellt
@@ -87,6 +88,7 @@ def turnier_setup():
         dataframe = pd.DataFrame(data=teams_lokal)
         dataframe.to_json(f"turniere/{turniername}/gruppen.json")
         return turniername, teams_lokal
+
 
 def runden_json_erstellen(turniername, runden_lokal, teams_lokal):
     """erstellung des runden.json aus den Spielen aller Runden
