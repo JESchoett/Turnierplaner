@@ -433,23 +433,43 @@ class RundenFrame(ctk.CTkFrame):
                 self.team_1_entry = ctk.CTkEntry(self, width=4)
                 self.team_1_entry.grid(row=self.row_der_spiele, column=2, padx=0, pady=10, sticky="ew", columnspan=1)
                 self.team_spacer = ctk.CTkLabel(self, text=":")
-                self.team_spacer.grid(row=self.row_der_spiele, column=3, padx=(0,1), pady=10, sticky="ew", columnspan=1)
+                self.team_spacer.grid(row=self.row_der_spiele, column=3, padx=(0,2), pady=10, sticky="ew", columnspan=1)
                 self.team_2_entry = ctk.CTkEntry(self, width=4)
                 self.team_2_entry.grid(row=self.row_der_spiele, column=4, padx=0, pady=10, sticky="ew", columnspan=1)
 
                 self.team_2 = ctk.CTkLabel(self, text=f"{spiel_aus_spielen.team_2.name}")
                 self.team_2.grid(row=self.row_der_spiele, column=5, padx=(30,10), pady=10, sticky="e", columnspan=1)
 
-                self.spiel_bestaetingen = ctk.CTkButton(self, text="Ergebis Eintragen", command=lambda: self.spiel_eintragen(spiel_aus_spielen))
+                command_func = lambda game=spiel_aus_spielen, entrys = [self.team_1_entry, self.team_2_entry]: self.spiel_eintragen(game, entrys)
+
+                self.spiel_bestaetingen = ctk.CTkButton(self, text="Ergebis Eintragen", command=command_func)
                 self.spiel_bestaetingen.grid(row=self.row_der_spiele, column=6, padx=(30,10), pady=10, sticky="ew", columnspan=1)
+
+                if spiel_aus_spielen.gespielt:
+                    self.spiel_eintragen(spiel_aus_spielen, entrys=[self.team_1_entry, self.team_2_entry])
 
                 self.row_der_spiele += 1
 
-    def spiel_eintragen(self, spiel_aus_spielen):
-        if self.team_1_entry.get().isdigit() and self.team_2_entry.get().isdigit():
-            spiel_aus_spielen.ergebnis_eintragen(int(self.team_1_entry.get()), int(self.team_2_entry.get()))
-            self.spiel_bestaetingen.configure(state="disabled")
+    def spiel_eintragen(self, spiel_aus_spielen, entrys):
+        """Eintragen eines Spieles bei Buttondruch
 
+        Args:
+            spiel_aus_spielen Spiel: Übergabe des Spiel Objektes zum Eintrag
+            entrys            Entrys: Eingabefelder der Teams
+        """
+        ergebnis = []
+        if not (spiel_aus_spielen.team_1.name.startswith("-") or spiel_aus_spielen.team_2.name.startswith("-")):
+            ergebnis.append(entrys[0].get())
+            ergebnis.append(entrys[1].get())
+            if ergebnis[0].isdigit() and ergebnis[1].isdigit():
+                spiel_aus_spielen.ergebnis_eintragen(int(ergebnis[0]), int(ergebnis[1]))
+        else:
+            spiel_aus_spielen.gespielt = True
+            spiel_aus_spielen.ergebnis = [0,0]
+
+        self.team_1_entry.insert(0,spiel_aus_spielen.ergebnis[0])
+        self.team_2_entry.insert(0,spiel_aus_spielen.ergebnis[1])
+        self.spiel_bestaetingen.configure(state="disabled")
 
 
 class MainFrame(ctk.CTkFrame):
