@@ -452,7 +452,8 @@ class GruppenFrame(ctk.CTkFrame):
 
         self.tabelle_aufbauen(gruppen_lokal, name_gruppe)
 
-        self.spiele_frame = ctk.CTkFrame(self)
+        self.spiele_frame = ctk.CTkScrollableFrame(self, width=600, height=800)
+
         self.spiele_frame.grid(row=0, column=0, padx=20, pady=20, sticky="n")
 
         for runde_aus_runden in runden_lokal[gruppe_der_runde]:
@@ -576,7 +577,7 @@ class App(ctk.CTk):
             os.mkdir("turniere")
         #generelles Setup für das Gui
         self.title('Turnierplaner')
-        self.geometry("1000x800")
+        self.geometry("1280x1024")
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
