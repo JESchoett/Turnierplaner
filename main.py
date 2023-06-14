@@ -308,6 +308,32 @@ def runden_json_erstellen(turniername, runden_lokal, teams_lokal):
                     if spiel_aus_spielen.team_2 == team_aus_teams.name:
                         spiel_aus_spielen.team_2 = team_aus_teams
 
+
+def tabelle_erstellen(gruppen_lokal):
+    """zusammenstellung der aktuellen tabelle
+
+    Args:
+        gruppen_lokal list: Liste aller Gruppen Objekte
+
+    Returns:
+        tabelle_lokal dic: Sortiertes Dictonary des aktuellen Tabellenstandes je Gruppe
+    """
+    #je gruppe team: name punktzahl und tordifferenz
+    tabelle_lokal = {}
+    for gruppe_aus_gruppen in gruppen_lokal:
+        aktuelle_gruppe = {}
+        for team_aus_teams in gruppe_aus_gruppen.teams_in_gruppe:
+            aktuelle_gruppe[team_aus_teams.name] = {"punkte":team_aus_teams.punkte,
+                                                    "treffer_diff": team_aus_teams.treffer - team_aus_teams.gegentreffer}
+        tabelle_lokal[gruppe_aus_gruppen.name] = aktuelle_gruppe
+
+    for gruppe_der_tabelle in tabelle_lokal:
+        tabelle_lokal[gruppe_der_tabelle] = sorted(tabelle_lokal[gruppe_der_tabelle].items(), key=lambda x: (x[1]['punkte'], x[1]['treffer_diff']), reverse=True)
+        tabelle_lokal[gruppe_der_tabelle] = dict(tabelle_lokal[gruppe_der_tabelle])
+
+    return tabelle_lokal
+
+
 #----- Erstellung der Frames für das GUI -----#
 class WillkommenFrame(ctk.CTkFrame):
     """Erstellen eines Frames zum Laden des Turnieres"""
@@ -416,41 +442,51 @@ class TeamErstellen(ctk.CTkFrame):
             self.weiteres_team_btn.grid(row=self.team_row+1, column=0, padx=(50,50), pady=20, sticky="ew", columnspan=4)
 
 
-class RundenFrame(ctk.CTkFrame):
+class GruppenFrame(ctk.CTkFrame):
     """
     Frame in denen das Eintragen der Runden durchgeführt wird
     """
-    def __init__(self, master, gruppe_der_runde, runde_lokal):
+    def __init__(self, master, gruppe_der_runde, gruppen_lokal, runden_lokal, name_gruppe, turniername, teams_lokal):
         super().__init__(master)
         self.row_der_spiele = 0
-        for runde_aus_runden in runde_lokal[gruppe_der_runde]:
-            self.runden_nr = ctk.CTkLabel(self, text=f"Runde: {runde_aus_runden.rundenzahl}")
+
+        self.tabelle_aufbauen(gruppen_lokal, name_gruppe)
+
+        self.spiele_frame = ctk.CTkFrame(self)
+        self.spiele_frame.grid(row=0, column=0, padx=20, pady=20, sticky="n")
+
+        for runde_aus_runden in runden_lokal[gruppe_der_runde]:
+            self.runden_nr = ctk.CTkLabel(master=self.spiele_frame, text=f"Runde: {runde_aus_runden.rundenzahl}")
             self.runden_nr.grid(row=self.row_der_spiele, column=0, padx=(30,50), pady=10, sticky="ew", columnspan=1)
             for spiel_aus_spielen in runde_aus_runden.spiele:
-                self.team_1 = ctk.CTkLabel(self, text=f"{spiel_aus_spielen.team_1.name}")
+                self.team_1 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_1.name}")
                 self.team_1.grid(row=self.row_der_spiele, column=1, padx=(10,30), pady=10, sticky="e", columnspan=1)
 
-                self.team_1_entry = ctk.CTkEntry(self, width=4)
+                self.team_1_entry = ctk.CTkEntry(master=self.spiele_frame, width=4)
                 self.team_1_entry.grid(row=self.row_der_spiele, column=2, padx=0, pady=10, sticky="ew", columnspan=1)
-                self.team_spacer = ctk.CTkLabel(self, text=":")
+                self.team_spacer = ctk.CTkLabel(master=self.spiele_frame, text=":")
                 self.team_spacer.grid(row=self.row_der_spiele, column=3, padx=(0,2), pady=10, sticky="ew", columnspan=1)
-                self.team_2_entry = ctk.CTkEntry(self, width=4)
+                self.team_2_entry = ctk.CTkEntry(master=self.spiele_frame, width=4)
                 self.team_2_entry.grid(row=self.row_der_spiele, column=4, padx=0, pady=10, sticky="ew", columnspan=1)
 
-                self.team_2 = ctk.CTkLabel(self, text=f"{spiel_aus_spielen.team_2.name}")
+                self.team_2 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_2.name}")
                 self.team_2.grid(row=self.row_der_spiele, column=5, padx=(30,10), pady=10, sticky="e", columnspan=1)
 
-                command_func = lambda game=spiel_aus_spielen, entrys = [self.team_1_entry, self.team_2_entry]: self.spiel_eintragen(game, entrys)
+                self.spiel_bestaetingen = ctk.CTkButton(master=self.spiele_frame, text="Ergebis Eintragen")
 
-                self.spiel_bestaetingen = ctk.CTkButton(self, text="Ergebis Eintragen", command=command_func)
+                command_func = lambda game=spiel_aus_spielen, entrys = [self.team_1_entry, self.team_2_entry],btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal: self.spiel_eintragen(game, entrys, btn, gruppen_lokal, name_gruppe, turniername, runden_lokal, teams_lokal)
+
+                self.spiel_bestaetingen.configure(command=command_func)
                 self.spiel_bestaetingen.grid(row=self.row_der_spiele, column=6, padx=(30,10), pady=10, sticky="ew", columnspan=1)
 
                 if spiel_aus_spielen.gespielt:
-                    self.spiel_eintragen(spiel_aus_spielen, entrys=[self.team_1_entry, self.team_2_entry])
+                    self.team_1_entry.insert(0,spiel_aus_spielen.ergebnis[0])
+                    self.team_2_entry.insert(0,spiel_aus_spielen.ergebnis[1])
+                    self.spiel_eintragen(spiel_aus_spielen, entrys=[self.team_1_entry, self.team_2_entry], btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal)
 
                 self.row_der_spiele += 1
 
-    def spiel_eintragen(self, spiel_aus_spielen, entrys):
+    def spiel_eintragen(self, spiel_aus_spielen, entrys, btn, gruppen_lokal, name_gruppe, turniername, runden_lokal, teams_lokal):
         """Eintragen eines Spieles bei Buttondruch
 
         Args:
@@ -463,31 +499,69 @@ class RundenFrame(ctk.CTkFrame):
             ergebnis.append(entrys[1].get())
             if ergebnis[0].isdigit() and ergebnis[1].isdigit():
                 spiel_aus_spielen.ergebnis_eintragen(int(ergebnis[0]), int(ergebnis[1]))
+            else:
+                return
         else:
             spiel_aus_spielen.gespielt = True
             spiel_aus_spielen.ergebnis = [0,0]
 
-        self.team_1_entry.insert(0,spiel_aus_spielen.ergebnis[0])
-        self.team_2_entry.insert(0,spiel_aus_spielen.ergebnis[1])
-        self.spiel_bestaetingen.configure(state="disabled")
+        entrys[0].insert(0,spiel_aus_spielen.ergebnis[0])
+        entrys[1].insert(0,spiel_aus_spielen.ergebnis[1])
+        btn.configure(state="disabled")
+        self.tabelle_aufbauen(gruppen_lokal, name_gruppe)
+        runden_json_erstellen(turniername, runden_lokal, teams_lokal)
+
+    def tabelle_aufbauen(self, gruppen_lokal, name_gruppe):
+        self.tabelle_aktuell = tabelle_erstellen(gruppen_lokal=gruppen_lokal)
+        self.tabelle_der_gruppe = TabellenFrame(self, gruppe_der_runde=name_gruppe, tabelle_lokal=self.tabelle_aktuell)
+        self.tabelle_der_gruppe.grid(row=0, column=1, padx=20, pady=20, sticky="n")
+
+
+class TabellenFrame(ctk.CTkFrame):
+    """
+    Frame in denen das Eintragen der Runden durchgeführt wird
+    """
+    def __init__(self, master, gruppe_der_runde, tabelle_lokal):
+        super().__init__(master)
+        self.gruppe = ctk.CTkLabel(self, text=f"Gruppe: {gruppe_der_runde}", font=("Arial",20))
+        self.gruppe.grid(row=0, column=0, padx=50, pady=10, sticky="ew", columnspan=4)
+        self.titel_team = ctk.CTkLabel(self, text="Team")
+        self.titel_team.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+        self.titel_punkte = ctk.CTkLabel(self, text="Punkte")
+        self.titel_punkte.grid(row=1, column=2, padx=20, pady=10, sticky="ew")
+        self.titel_diff = ctk.CTkLabel(self, text="Diff")
+        self.titel_diff.grid(row=1, column=3, padx=20, pady=10, sticky="ew")
+
+        index_position = 1
+        for team_in_gruppe, team_stats in tabelle_lokal[gruppe_der_runde].items():
+            self.position = ctk.CTkLabel(self, text=f"{index_position}.")
+            index_position += 1
+            self.position.grid(row=index_position, column=0, padx=20, pady=10, sticky="ew")
+            self.team = ctk.CTkLabel(self, text=team_in_gruppe)
+            self.team.grid(row=index_position, column=1, padx=20, pady=10, sticky="ew")
+            self.punkte_des_teams = ctk.CTkLabel(self, text=team_stats['punkte'])
+            self.punkte_des_teams.grid(row=index_position, column=2, padx=20, pady=10, sticky="ew")
+            self.treffer_diff = ctk.CTkLabel(self, text=team_stats['treffer_diff'])
+            self.treffer_diff.grid(row=index_position, column=3, padx=20, pady=10, sticky="ew")
 
 
 class MainFrame(ctk.CTkFrame):
     """
     Main  frame in dem Spiele eingetragen werden können und die Tabelle dargestellt wird
     """
-    def __init__(self, master, gruppen_lokal, runde_lokal):
+    def __init__(self, master, teams_lokal, gruppen_lokal, runden_lokal, turniername):
         super().__init__(master)
         self.tabview = ctk.CTkTabview(self, width=250)
         self.tabview.grid(row=0, column=0, padx=10, pady=0, sticky="")
+
 
         self.gruppencounter = 0
         for gruppe_aus_gruppen in gruppen_lokal:
             self.tabview.add(f"Gruppe {gruppe_aus_gruppen.name}")
             self.tabview.tab(f"Gruppe {gruppe_aus_gruppen.name}").grid_columnconfigure(0, weight=1)  # configure grid of individual tabs
 
-            self.runden_frame = RundenFrame(self.tabview.tab(f"Gruppe {gruppe_aus_gruppen.name}"), gruppe_der_runde=self.gruppencounter, runde_lokal=runde_lokal)
-            self.runden_frame.grid(row=0, column=1, padx=20, pady=20, sticky="n")
+            self.gruppen_frame = GruppenFrame(self.tabview.tab(f"Gruppe {gruppe_aus_gruppen.name}"), gruppe_der_runde=self.gruppencounter, gruppen_lokal=gruppen_lokal, runden_lokal=runden_lokal, name_gruppe=gruppe_aus_gruppen.name, turniername=turniername, teams_lokal=teams_lokal)
+            self.gruppen_frame.grid(row=0, column=1, padx=20, pady=20, sticky="n")
 
             self.gruppencounter += 1
 
@@ -558,7 +632,7 @@ class App(ctk.CTk):
             else:
                 self.runden, self.runden_sind_eingetragen = spielplan_erstellen(self.turniername, self.teams, self.gruppen)
 
-            self.main_frame = MainFrame(self, self.gruppen, self.runden)
+            self.main_frame = MainFrame(self, self.teams, self.gruppen, self.runden, self.turniername)
             self.main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="")
 
 
