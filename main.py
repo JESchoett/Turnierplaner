@@ -68,13 +68,13 @@ def turnier_setup(turniername, status_anlage, live_frame):
                         spiele_werden_gespielt = int(engabe_dialog)
                         #wenn die nummerische eingabe grüßer als "r" wird r genommen
                         if spiele_werden_gespielt > anzahl_der_teams*(anzahl_der_teams-1):
-                            spiele_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
+                            spiele_werden_gespielt = int(anzahl_der_teams*(anzahl_der_teams-1))
                         eingabe_erkannt = True
                     elif engabe_dialog.lower().startswith("h"):
-                        spiele_werden_gespielt = anzahl_der_teams/2*(anzahl_der_teams-1)
+                        spiele_werden_gespielt = int(anzahl_der_teams/2*(anzahl_der_teams-1))
                         eingabe_erkannt = True
                     elif engabe_dialog.lower().startswith("r"):
-                        spiele_werden_gespielt = anzahl_der_teams*(anzahl_der_teams-1)
+                        spiele_werden_gespielt = int(anzahl_der_teams*(anzahl_der_teams-1))
                         eingabe_erkannt = True
 
             #anlage des Gruppen Objektes
@@ -152,7 +152,7 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
         runden_counter = 0
         spiele_counter = 0
         runden_aktuelle_gruppe = []
-        while spiele_counter != gruppe_aus_gruppen.spieleanzahl:
+        while spiele_counter < gruppe_aus_gruppen.spieleanzahl:
             runden_counter += 1
             paare_der_runden = []
             teams_haben_gespielt = []
@@ -378,7 +378,7 @@ class WillkommenFrame(ctk.CTkFrame):
         self.entry_turnier.insert(0,text)
 
 
-class TeamErstellen(ctk.CTkFrame):
+class TeamErstellenFrame(ctk.CTkFrame):
     """
     Erstellen eines Frames in dem Teams und Gruppen angelegt werden
     Außerdem wird die gruppen.json hier angelegt
@@ -452,7 +452,7 @@ class GruppenFrame(ctk.CTkFrame):
 
         self.tabelle_aufbauen(gruppen_lokal, name_gruppe)
 
-        self.spiele_frame = ctk.CTkScrollableFrame(self, width=600, height=800)
+        self.spiele_frame = ctk.CTkScrollableFrame(self, width=900, height=800)
 
         self.spiele_frame.grid(row=0, column=0, padx=20, pady=20, sticky="n")
 
@@ -463,22 +463,22 @@ class GruppenFrame(ctk.CTkFrame):
                 self.team_1 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_1.name}")
                 self.team_1.grid(row=self.row_der_spiele, column=1, padx=(10,30), pady=10, sticky="e", columnspan=1)
 
-                self.team_1_entry = ctk.CTkEntry(master=self.spiele_frame, width=4)
-                self.team_1_entry.grid(row=self.row_der_spiele, column=2, padx=0, pady=10, sticky="ew", columnspan=1)
+                self.team_1_entry = ctk.CTkEntry(master=self.spiele_frame, width=35)
+                self.team_1_entry.grid(row=self.row_der_spiele, column=2, padx=0, pady=15, sticky="ew", columnspan=1)
                 self.team_spacer = ctk.CTkLabel(master=self.spiele_frame, text=":")
-                self.team_spacer.grid(row=self.row_der_spiele, column=3, padx=(0,2), pady=10, sticky="ew", columnspan=1)
-                self.team_2_entry = ctk.CTkEntry(master=self.spiele_frame, width=4)
-                self.team_2_entry.grid(row=self.row_der_spiele, column=4, padx=0, pady=10, sticky="ew", columnspan=1)
+                self.team_spacer.grid(row=self.row_der_spiele, column=3, padx=(0,2), pady=15, sticky="ew", columnspan=1)
+                self.team_2_entry = ctk.CTkEntry(master=self.spiele_frame, width=35)
+                self.team_2_entry.grid(row=self.row_der_spiele, column=4, padx=0, pady=15, sticky="ew", columnspan=1)
 
                 self.team_2 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_2.name}")
-                self.team_2.grid(row=self.row_der_spiele, column=5, padx=(30,10), pady=10, sticky="e", columnspan=1)
+                self.team_2.grid(row=self.row_der_spiele, column=5, padx=(30,50), pady=10, sticky="e", columnspan=1)
 
                 self.spiel_bestaetingen = ctk.CTkButton(master=self.spiele_frame, text="Ergebis Eintragen")
 
                 command_func = lambda game=spiel_aus_spielen, entrys = [self.team_1_entry, self.team_2_entry],btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal: self.spiel_eintragen(game, entrys, btn, gruppen_lokal, name_gruppe, turniername, runden_lokal, teams_lokal)
 
                 self.spiel_bestaetingen.configure(command=command_func)
-                self.spiel_bestaetingen.grid(row=self.row_der_spiele, column=6, padx=(30,10), pady=10, sticky="ew", columnspan=1)
+                self.spiel_bestaetingen.grid(row=self.row_der_spiele, column=6, padx=(30,60), pady=10, sticky="w", columnspan=1)
 
                 if spiel_aus_spielen.gespielt:
                     self.team_1_entry.insert(0,spiel_aus_spielen.ergebnis[0])
@@ -506,6 +506,8 @@ class GruppenFrame(ctk.CTkFrame):
             spiel_aus_spielen.gespielt = True
             spiel_aus_spielen.ergebnis = [0,0]
 
+        entrys[0].delete(0,"end")
+        entrys[1].delete(0,"end")
         entrys[0].insert(0,spiel_aus_spielen.ergebnis[0])
         entrys[1].insert(0,spiel_aus_spielen.ergebnis[1])
         btn.configure(state="disabled")
@@ -577,7 +579,7 @@ class App(ctk.CTk):
             os.mkdir("turniere")
         #generelles Setup für das Gui
         self.title('Turnierplaner')
-        self.geometry("1280x1024")
+        self.geometry("1280x1300")
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -617,7 +619,7 @@ class App(ctk.CTk):
             if not self.teams:
                 self.aktueller_status = "Turnier_Setup_neuanlage"
                 #erstellen des Team/Gruppen Erstell Frames
-                self.team_erstellen_frame = TeamErstellen(self)
+                self.team_erstellen_frame = TeamErstellenFrame(self)
                 self.team_erstellen_frame.grid(row=0, column=0, padx=10, pady=10, sticky="")
                 self.live_frame = self.team_erstellen_frame
                 self.close.configure(text="Bestätigen der Anlage")
