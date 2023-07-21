@@ -45,6 +45,7 @@ def turnier_setup(turniername, status_anlage, live_frame):
                 filler_team = "-"+gruppe_aus_dictonary
                 teams_lokal.append(Team(name=filler_team, gruppe=gruppe_aus_dictonary,punkte=0,treffer=0,gegentreffer=0))
                 gruppen_in_turnier[gruppe_aus_dictonary] += 1
+                anzahl_der_teams += 1
 
             #analyse, welche Teams in einer Gruppe sind
             teams_in_gruppe = []
@@ -146,13 +147,20 @@ def spielplan_erstellen(turniername,teams_lokal, gruppen_lokal):
             for index_j,team_j in enumerate(teams_in_gruppe[index_i+1:], start=index_i+1):
                 paare_der_hinrunde.append((team_i, team_j))
                 paare_der_rueckrunde.append((team_j, team_i))
-        alle_runden = paare_der_hinrunde + paare_der_rueckrunde
+
+        anzahl_teams = len(gruppe_aus_gruppen.teams_in_gruppe)
+
+        if gruppe_aus_gruppen.spieleanzahl > int(anzahl_teams/2*(anzahl_teams-1)):
+            alle_runden = paare_der_hinrunde + paare_der_rueckrunde
+        else:
+            alle_runden = paare_der_hinrunde
 
         runden_aufsetzen = {}
         runden_counter = 0
         spiele_counter = 0
         runden_aktuelle_gruppe = []
-        while spiele_counter < gruppe_aus_gruppen.spieleanzahl:
+        while spiele_counter != gruppe_aus_gruppen.spieleanzahl:
+            random.shuffle(alle_runden)
             runden_counter += 1
             paare_der_runden = []
             teams_haben_gespielt = []
@@ -456,36 +464,47 @@ class GruppenFrame(ctk.CTkFrame):
 
         self.spiele_frame.grid(row=0, column=0, padx=20, pady=20, sticky="n")
 
+        self.spiel_bestaetingen_liste = []
+
         for runde_aus_runden in runden_lokal[gruppe_der_runde]:
             self.runden_nr = ctk.CTkLabel(master=self.spiele_frame, text=f"Runde: {runde_aus_runden.rundenzahl}")
             self.runden_nr.grid(row=self.row_der_spiele, column=0, padx=(30,50), pady=10, sticky="ew", columnspan=1)
             for spiel_aus_spielen in runde_aus_runden.spiele:
-                self.team_1 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_1.name}")
-                self.team_1.grid(row=self.row_der_spiele, column=1, padx=(10,30), pady=10, sticky="e", columnspan=1)
+                if not spiel_aus_spielen.team_1.name.startswith("-") and not spiel_aus_spielen.team_2.name.startswith("-"):
+                    self.team_1 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_1.name}")
+                    self.team_1.grid(row=self.row_der_spiele, column=1, padx=(10,30), pady=10, sticky="e", columnspan=1)
 
-                self.team_1_entry = ctk.CTkEntry(master=self.spiele_frame, width=35)
-                self.team_1_entry.grid(row=self.row_der_spiele, column=2, padx=0, pady=15, sticky="ew", columnspan=1)
-                self.team_spacer = ctk.CTkLabel(master=self.spiele_frame, text=":")
-                self.team_spacer.grid(row=self.row_der_spiele, column=3, padx=(0,2), pady=15, sticky="ew", columnspan=1)
-                self.team_2_entry = ctk.CTkEntry(master=self.spiele_frame, width=35)
-                self.team_2_entry.grid(row=self.row_der_spiele, column=4, padx=0, pady=15, sticky="ew", columnspan=1)
+                    self.team_1_entry = ctk.CTkEntry(master=self.spiele_frame, width=35)
+                    self.team_1_entry.grid(row=self.row_der_spiele, column=2, padx=0, pady=15, sticky="ew", columnspan=1)
+                    self.team_spacer = ctk.CTkLabel(master=self.spiele_frame, text=":")
+                    self.team_spacer.grid(row=self.row_der_spiele, column=3, padx=(0,2), pady=15, sticky="ew", columnspan=1)
+                    self.team_2_entry = ctk.CTkEntry(master=self.spiele_frame, width=35)
+                    self.team_2_entry.grid(row=self.row_der_spiele, column=4, padx=0, pady=15, sticky="ew", columnspan=1)
 
-                self.team_2 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_2.name}")
-                self.team_2.grid(row=self.row_der_spiele, column=5, padx=(30,50), pady=10, sticky="e", columnspan=1)
+                    self.team_2 = ctk.CTkLabel(master=self.spiele_frame, text=f"{spiel_aus_spielen.team_2.name}")
+                    self.team_2.grid(row=self.row_der_spiele, column=5, padx=(30,50), pady=10, sticky="e", columnspan=1)
 
-                self.spiel_bestaetingen = ctk.CTkButton(master=self.spiele_frame, text="Ergebis Eintragen")
+                    self.spiel_bestaetingen = ctk.CTkButton(master=self.spiele_frame, text="Ergebis Eintragen")
 
-                command_func = lambda game=spiel_aus_spielen, entrys = [self.team_1_entry, self.team_2_entry],btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal: self.spiel_eintragen(game, entrys, btn, gruppen_lokal, name_gruppe, turniername, runden_lokal, teams_lokal)
+                    command_func = lambda game=spiel_aus_spielen, entrys = [self.team_1_entry, self.team_2_entry],btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal: self.spiel_eintragen(game, entrys, btn, gruppen_lokal, name_gruppe, turniername, runden_lokal, teams_lokal)
 
-                self.spiel_bestaetingen.configure(command=command_func)
-                self.spiel_bestaetingen.grid(row=self.row_der_spiele, column=6, padx=(30,60), pady=10, sticky="w", columnspan=1)
+                    self.spiel_bestaetingen.configure(command=command_func)
+                    self.spiel_bestaetingen.grid(row=self.row_der_spiele, column=6, padx=(30,60), pady=10, sticky="w", columnspan=1)
+                    self.spiel_bestaetingen_liste.append(self.spiel_bestaetingen)
 
-                if spiel_aus_spielen.gespielt:
-                    self.team_1_entry.insert(0,spiel_aus_spielen.ergebnis[0])
-                    self.team_2_entry.insert(0,spiel_aus_spielen.ergebnis[1])
-                    self.spiel_eintragen(spiel_aus_spielen, entrys=[self.team_1_entry, self.team_2_entry], btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal)
+                    if spiel_aus_spielen.gespielt:
+                        self.team_1_entry.insert(0,spiel_aus_spielen.ergebnis[0])
+                        self.team_2_entry.insert(0,spiel_aus_spielen.ergebnis[1])
+                        self.spiel_eintragen(spiel_aus_spielen, entrys=[self.team_1_entry, self.team_2_entry], btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal)
 
-                self.row_der_spiele += 1
+                    self.row_der_spiele += 1
+
+        self.anpassung_der_spiele = ctk.CTkButton(self, text="Ergebnisse Anpassen", command=self.spiele_anpassen(self.spiel_bestaetingen_liste))
+        self.anpassung_der_spiele.grid(row=self.row_der_spiele, column=0, padx=60, pady=10, sticky="ew", columnspan=6)
+
+    def spiele_anpassen(self, liste_der_btn):
+        for btn in liste_der_btn:
+            btn.configure(state="enabled")
 
     def spiel_eintragen(self, spiel_aus_spielen, entrys, btn, gruppen_lokal, name_gruppe, turniername, runden_lokal, teams_lokal):
         """Eintragen eines Spieles bei Buttondruch
@@ -537,15 +556,16 @@ class TabellenFrame(ctk.CTkFrame):
 
         index_position = 1
         for team_in_gruppe, team_stats in tabelle_lokal[gruppe_der_runde].items():
-            self.position = ctk.CTkLabel(self, text=f"{index_position}.")
-            index_position += 1
-            self.position.grid(row=index_position, column=0, padx=20, pady=10, sticky="ew")
-            self.team = ctk.CTkLabel(self, text=team_in_gruppe)
-            self.team.grid(row=index_position, column=1, padx=20, pady=10, sticky="ew")
-            self.punkte_des_teams = ctk.CTkLabel(self, text=team_stats['punkte'])
-            self.punkte_des_teams.grid(row=index_position, column=2, padx=20, pady=10, sticky="ew")
-            self.treffer_diff = ctk.CTkLabel(self, text=team_stats['treffer_diff'])
-            self.treffer_diff.grid(row=index_position, column=3, padx=20, pady=10, sticky="ew")
+            if not team_in_gruppe.startswith("-"):
+                self.position = ctk.CTkLabel(self, text=f"{index_position}.")
+                index_position += 1
+                self.position.grid(row=index_position, column=0, padx=20, pady=10, sticky="ew")
+                self.team = ctk.CTkLabel(self, text=team_in_gruppe)
+                self.team.grid(row=index_position, column=1, padx=20, pady=10, sticky="ew")
+                self.punkte_des_teams = ctk.CTkLabel(self, text=team_stats['punkte'])
+                self.punkte_des_teams.grid(row=index_position, column=2, padx=20, pady=10, sticky="ew")
+                self.treffer_diff = ctk.CTkLabel(self, text=team_stats['treffer_diff'])
+                self.treffer_diff.grid(row=index_position, column=3, padx=20, pady=10, sticky="ew")
 
 
 class MainFrame(ctk.CTkFrame):
