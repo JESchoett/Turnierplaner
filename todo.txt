@@ -1,0 +1,10 @@
+Ausblenden des Ergebnis Anpassen Buttons auch beim Laden
+
+Möglichkeit Ergebnise Anzupassen
+    Den Button sehe ich gerade im Vollbild nicht
+
+Übersicht wie viele Spiele Gespielt wurden
+
+Lightmode Switch
+
+Zurück Button um zwischen Turnieren wechseln zu können

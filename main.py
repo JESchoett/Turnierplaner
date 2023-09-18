@@ -495,16 +495,10 @@ class GruppenFrame(ctk.CTkFrame):
                     if spiel_aus_spielen.gespielt:
                         self.team_1_entry.insert(0,spiel_aus_spielen.ergebnis[0])
                         self.team_2_entry.insert(0,spiel_aus_spielen.ergebnis[1])
-                        self.spiel_eintragen(spiel_aus_spielen, entrys=[self.team_1_entry, self.team_2_entry], btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal)
+                        #self.spiel_eintragen(spiel_aus_spielen, entrys=[self.team_1_entry, self.team_2_entry], btn=self.spiel_bestaetingen, gruppen_lokal=gruppen_lokal, name_gruppe=name_gruppe, turniername=turniername, runden_lokal=runden_lokal, teams_lokal=teams_lokal)
+                        #self.spiel_bestaetingen.configure(state="disabled")
 
                     self.row_der_spiele += 1
-
-        self.anpassung_der_spiele = ctk.CTkButton(self, text="Ergebnisse Anpassen", command=self.spiele_anpassen(self.spiel_bestaetingen_liste))
-        self.anpassung_der_spiele.grid(row=self.row_der_spiele, column=0, padx=60, pady=10, sticky="ew", columnspan=6)
-
-    def spiele_anpassen(self, liste_der_btn):
-        for btn in liste_der_btn:
-            btn.configure(state="enabled")
 
     def spiel_eintragen(self, spiel_aus_spielen, entrys, btn, gruppen_lokal, name_gruppe, turniername, runden_lokal, teams_lokal):
         """Eintragen eines Spieles bei Buttondruch
@@ -609,7 +603,7 @@ class App(ctk.CTk):
 
         self.live_frame = self.willkommen_frame
 
-        self.fenster_steuerung = ctk.CTkButton(self, text="Lade Turnier", command=lambda: self.fenster_aendern(self.live_frame))
+        self.fenster_steuerung = ctk.CTkButton(self, text="Lade Turnier", command=lambda: self.fenster_aendern(self.live_frame, self.fenster_steuerung))
         self.fenster_steuerung.grid(row=1, column=0, padx=30, pady=(0, 30), sticky="n")
 
         #deklaration der Variablen für den Ablauf
@@ -619,7 +613,7 @@ class App(ctk.CTk):
         self.turniername = None
         self.aktueller_status = "Generiert"
 
-    def fenster_aendern(self, frame):
+    def fenster_aendern(self, frame, btn):
         """
         schließen des Aktuellen Frames und öffnen neuer Frames, abhängig vom Status
         """
@@ -628,6 +622,7 @@ class App(ctk.CTk):
             print(self.turniername)
             if self.turniername != "" and not self.turniername.isspace() and self.turniername.isprintable():
                 frame.destroy()
+                btn.destroy()
                 if not os.path.isdir(f"turniere/{self.turniername}"):
                     os.mkdir(f"turniere/{self.turniername}")
             else:
