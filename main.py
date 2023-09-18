@@ -393,20 +393,24 @@ class TeamErstellenFrame(ctk.CTkFrame):
     """
     def __init__(self, master):
         super().__init__(master)
+        self.team_frame = ctk.CTkScrollableFrame(self, width=900, height=800)
 
-        self.label_welc = ctk.CTkLabel(self, text="Anlage von Teams und Gruppen", font=("Arial",30))
+        self.team_frame.grid(row=0, column=0, padx=20, pady=20, sticky="n")
+
+        self.label_welc = ctk.CTkLabel(master=self.team_frame, text="Anlage von Teams und Gruppen", font=("Arial",30))
         self.label_welc.grid(row=0, column=0, padx=(30,10), pady=(30,10), sticky="ew", columnspan=4)
 
-        self.button_t = ctk.CTkButton(self, text="Team")
+        self.button_t = ctk.CTkButton(master=self.team_frame, text="Team")
         self.button_t.grid(row=1, column=1, padx=(30,0), pady=(10, 0), sticky="ew")
 
-        self.button_g = ctk.CTkButton(self, text="Gruppe")
+        self.button_g = ctk.CTkButton(master=self.team_frame, text="Gruppe")
         self.button_g.grid(row=1, column=2, padx=(0,30), pady=(10, 0), sticky="ew")
 
-        self.weiteres_team_btn = ctk.CTkButton(master=self, text="Weiteres Team", command=self.weiteres_team)
+        self.weiteres_team_btn = ctk.CTkButton(master=self.team_frame, text="Weiteres Team", command=self.weiteres_team)
 
         self.team_row = 1
         self.entrys = []
+        self.weiteres_team()
         self.weiteres_team()
 
     def weiteres_team(self):
@@ -415,19 +419,19 @@ class TeamErstellenFrame(ctk.CTkFrame):
         if len(self.entrys) > 0:
             self.entrys[-1][2].configure(state="disabled")
 
-        self.label_team = ctk.CTkLabel(self, text=f"Team Nr. {self.team_row}")
+        self.label_team = ctk.CTkLabel(master=self.team_frame, text=f"Team Nr. {self.team_row}")
 
         self.team_row += 1
 
         self.label_team.grid(row=self.team_row, column=0, padx=30, pady=0, sticky="e")
 
-        self.entry_name_t = ctk.CTkEntry(self, width=10)
+        self.entry_name_t = ctk.CTkEntry(master=self.team_frame, width=10)
         self.entry_name_t.grid(row=self.team_row, column=1, padx=(30,0), pady=0, sticky="ew")
 
-        self.entry_name_g = ctk.CTkEntry(self, width=30)
+        self.entry_name_g = ctk.CTkEntry(master=self.team_frame, width=30)
         self.entry_name_g.grid(row=self.team_row, column=2, padx=(0,30), pady=0, sticky="ew")
 
-        self.entfernen_btn = ctk.CTkButton(master=self, text="Entfernen")
+        self.entfernen_btn = ctk.CTkButton(master=self.team_frame, text="Entfernen")
         command_func = lambda to_del=[self.label_team, self.entry_name_t, self.entry_name_g, self.entfernen_btn]: self.eingabe_weiteres_team_loeaschen(to_del)
         self.entfernen_btn.configure(command= command_func)
         if len(self.entrys) > 0:
