@@ -626,7 +626,6 @@ class App(ctk.CTk):
             print(self.turniername)
             if self.turniername != "" and not self.turniername.isspace() and self.turniername.isprintable():
                 frame.destroy()
-                btn.destroy()
                 if not os.path.isdir(f"turniere/{self.turniername}"):
                     os.mkdir(f"turniere/{self.turniername}")
             else:
@@ -649,6 +648,7 @@ class App(ctk.CTk):
             self.aktueller_status = "Turnier_Setup_angelegt"
 
         if self.aktueller_status == "Turnier_Setup_angelegt":
+            btn.destroy()
             if os.path.isfile(f"turniere/{self.turniername}/runden.json"):
                 self.runden, self.runden_sind_eingetragen = runden_daten_aus_json(self.turniername, self.teams, self.gruppen)
             else:
